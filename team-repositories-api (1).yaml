@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: Team Repository Connections API
+  description: |
+    API endpoints for managing repository connections to teams in the Auth Service.
+    
+    These endpoints act as a proxy to the Indexing Service and require Admin authentication.
+    All requests are forwarded to the configured INDEXING_SERVICE with the Authorization header.
+  version: 1.0.0
+  contact:
+    name: Auth Service Team
+
+servers:
+  - url: /api/team/v1
+    description: Team API v1 base path
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Team Repositories
+    description: Manage repository connections for teams
+
+paths:
+  /{teamId}/connections/repositories:
+    get:
+      tags:
+        - Team Repositories
+      summary: Get team repositories
+      description: Retrieve all repository connections configured for a specific team
+      operationId: getTeamRepositories
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+      responses:
+        '200':
+          description: Successfully retrieved team repositories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryConnection'
+              example:
+                - repository_link: "https://github.com/example/repo1"
+                  repo_type: "git"
+                  authentication_method: "https"
+                  authentication_credentials_name: "github-creds"
+                  view_source_link_pattern: "https://github.com/example/repo1/blob/main/{path}#L{line}"
+                - repository_link: "perforce://perforce.company.com:1666"
+                  repo_type: "perforce"
+                  authentication_credentials_name: "p4-creds"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+    
+    post:
+      tags:
+        - Team Repositories
+      summary: Add team repository
+      description: |
+        Add a new repository connection to a team.
+        
+        **Git repositories** can optionally include authentication_method and authentication_credentials_name.
+        **Perforce repositories** require authentication_credentials_name.
+      operationId: addTeamRepository
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddRepositoryRequest'
+            examples:
+              gitWithHttps:
+                summary: Git repository with HTTPS authentication
+                value:
+                  repository_link: "https://github.com/example/repo"
+                  repo_type: "git"
+                  authentication_method: "https"
+                  authentication_credentials_name: "github-pat"
+                  view_source_link_pattern: "https://github.com/example/repo/blob/main/{path}#L{line}"
+              gitWithSsh:
+                summary: Git repository with SSH authentication
+                value:
+                  repository_link: "git@github.com:example/repo.git"
+                  repo_type: "git"
+                  authentication_method: "ssh"
+                  authentication_credentials_name: "github-ssh-key"
+              perforce:
+                summary: Perforce repository
+                value:
+                  repository_link: "perforce://perforce.company.com:1666/depot/project"
+                  repo_type: "perforce"
+                  authentication_credentials_name: "p4-credentials"
+                  view_source_link_pattern: "https://perforce.company.com/files/{path}#{line}"
+      responses:
+        '200':
+          description: Repository connection successfully added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryConnection'
+        '201':
+          description: Repository connection successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryConnection'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Repository connection already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Repository connection already exists for this team"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+  /{teamId}/connections/repositories/{repositoryLink}:
+    put:
+      tags:
+        - Team Repositories
+      summary: Edit team repository
+      description: |
+        Update an existing repository connection.
+        All fields are optional - only provided fields will be updated (partial update).
+      operationId: editTeamRepository
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+        - $ref: '#/components/parameters/RepositoryLinkParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditRepositoryRequest'
+            examples:
+              updateAuthMethod:
+                summary: Update authentication method
+                value:
+                  authentication_method: "ssh"
+                  authentication_credentials_name: "new-ssh-key"
+              updateViewPattern:
+                summary: Update view source link pattern
+                value:
+                  view_source_link_pattern: "https://github.com/example/repo/blob/develop/{path}#L{line}"
+              updateMultipleFields:
+                summary: Update multiple fields
+                value:
+                  repo_type: "git"
+                  authentication_method: "https"
+                  view_source_link_pattern: "https://gitlab.com/example/repo/-/blob/main/{path}#L{line}"
+      responses:
+        '200':
+          description: Repository connection successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryConnection'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Repository connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Repository connection not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+    
+    delete:
+      tags:
+        - Team Repositories
+      summary: Delete team repository
+      description: Remove a repository connection from a team
+      operationId: deleteTeamRepository
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+        - $ref: '#/components/parameters/RepositoryLinkParam'
+      responses:
+        '200':
+          description: Repository connection successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Repository connection deleted successfully"
+        '204':
+          description: Repository connection successfully deleted (no content)
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Repository connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Repository connection not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT ID Token obtained from authentication endpoints.
+        
+        **Required Role**: Admin
+        
+        Include in the Authorization header as: `Bearer {token}`
+
+  parameters:
+    TeamIdParam:
+      name: teamId
+      in: path
+      required: true
+      description: The unique identifier of the team
+      schema:
+        type: string
+        format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    
+    RepositoryLinkParam:
+      name: repositoryLink
+      in: path
+      required: true
+      description: |
+        The full repository link/URL. Can contain slashes and special characters.
+        This should match the repository_link used when adding the repository.
+      schema:
+        type: string
+      examples:
+        githubHttps:
+          value: "https://github.com/example/repo"
+          summary: GitHub HTTPS URL
+        githubSsh:
+          value: "git@github.com:example/repo.git"
+          summary: GitHub SSH URL
+        perforce:
+          value: "perforce://perforce.company.com:1666/depot/project"
+          summary: Perforce URL
+
+  schemas:
+    RepositoryConnection:
+      type: object
+      required:
+        - repository_link
+        - repo_type
+      properties:
+        repository_link:
+          type: string
+          description: The URL or path to the repository
+          example: "https://github.com/example/repo"
+        repo_type:
+          type: string
+          enum: [git, perforce]
+          description: The type of repository
+          example: "git"
+        authentication_method:
+          type: string
+          enum: [ssh, https]
+          description: Authentication method (Git only)
+          example: "https"
+        authentication_credentials_name:
+          type: string
+          description: Name of the credentials to use for authentication
+          example: "github-pat-token"
+        view_source_link_pattern:
+          type: string
+          description: |
+            Template pattern for generating links to view source code.
+            Use {path} for file path and {line} for line number.
+          example: "https://github.com/example/repo/blob/main/{path}#L{line}"
+    
+    AddRepositoryRequest:
+      type: object
+      required:
+        - repository_link
+        - repo_type
+      properties:
+        repository_link:
+          type: string
+          description: The URL or path to the repository
+          example: "https://github.com/example/repo"
+        repo_type:
+          type: string
+          enum: [git, perforce]
+          description: The type of repository
+          example: "git"
+        authentication_method:
+          type: string
+          enum: [ssh, https]
+          description: |
+            Authentication method for Git repositories.
+            Optional for Git, not applicable for Perforce.
+          example: "https"
+        authentication_credentials_name:
+          type: string
+          description: |
+            Name of the credentials to use for authentication.
+            Optional for Git, required for Perforce.
+          example: "github-pat-token"
+        view_source_link_pattern:
+          type: string
+          description: |
+            Template pattern for generating links to view source code.
+            Use {path} for file path and {line} for line number.
+            Optional for both Git and Perforce.
+          example: "https://github.com/example/repo/blob/main/{path}#L{line}"
+    
+    EditRepositoryRequest:
+      type: object
+      description: All fields are optional for editing (partial update)
+      properties:
+        repo_type:
+          type: string
+          enum: [git, perforce]
+          description: The type of repository
+          example: "git"
+        authentication_method:
+          type: string
+          enum: [ssh, https]
+          description: Authentication method for Git repositories
+          example: "ssh"
+        authentication_credentials_name:
+          type: string
+          description: Name of the credentials to use for authentication
+          example: "github-ssh-key"
+        view_source_link_pattern:
+          type: string
+          description: |
+            Template pattern for generating links to view source code.
+            Use {path} for file path and {line} for line number.
+          example: "https://github.com/example/repo/blob/develop/{path}#L{line}"
+    
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message describing what went wrong
+          example: "Repository link is required"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  responses:
+    BadRequestError:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missingRepositoryLink:
+              value:
+                message: "Repository link is required"
+                status: 400
+            invalidRepoType:
+              value:
+                message: "Invalid repo_type. Must be 'git' or 'perforce'"
+                status: 400
+    
+    UnauthorizedError:
+      description: Unauthorized - Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Unauthorized. Valid ID token required."
+            status: 401
+    
+    ForbiddenError:
+      description: Forbidden - User does not have required permissions (Admin role required)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Forbidden. Admin role required."
+            status: 403
+    
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            indexingServiceNotConfigured:
+              summary: Indexing service not configured
+              value:
+                message: "Indexing service not configured"
+                status: 500
+            indexingServiceError:
+              summary: Error from indexing service
+              value:
+                message: "Error from indexing service"
+                status: 500
+            unexpectedError:
+              summary: Unexpected error
+              value:
+                message: "Internal server error"
+                status: 500
+
