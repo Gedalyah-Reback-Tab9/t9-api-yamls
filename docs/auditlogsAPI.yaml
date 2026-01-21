@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Audit Logs API
+  version: "5.25.0"
+  description: |
+    OpenAPI YAML derived from Tabnine Docs "Audit Logs API" section.
+
+    Notes:
+    - Docs show the relative URLs `/organization/audit_logs?limit=50&offset=0` (JSON) and
+      `/organization/audit-logs?csv-format` (CSV). This spec assumes the same `/api/v1` base
+      used by other Tabnine APIs on the same page.
+    - The audit log event schema is not specified in the docs; schemas below are placeholders
+      based on the described fields.
+
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: api.example.com
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Audit Logs
+
+paths:
+  /api/v1/organization/audit_logs:
+    get:
+      tags: [Audit Logs]
+      summary: Get audit logs (JSON)
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+      responses:
+        "200":
+          description: Successful response with audit log events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /api/v1/organization/audit-logs:
+    get:
+      tags: [Audit Logs]
+      summary: Download audit logs (CSV)
+      parameters:
+        - name: csv-format
+          in: query
+          required: true
+          schema:
+            type: boolean
+          example: true
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+      responses:
+        "200":
+          description: Successful response with CSV content.
+          content:
+            text/csv:
+              schema:
+                type: string
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 50
+    offset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  responses:
+    Unauthorized:
+      description: Unauthorized – Invalid token.
+    Forbidden:
+      description: Forbidden – Only Admin users can access the Audit Logs API.
+    InternalServerError:
+      description: Internal Server Error – Unexpected server error.
+
+  schemas:
+    AuditLogEvent:
+      type: object
+      additionalProperties: true
+      properties:
+        eventType:
+          type: string
+        performing_user:
+          type: object
+          additionalProperties: true
+        affected_user:
+          type: object
+          additionalProperties: true
+        occurredAt:
+          type: string
+          format: date-time
+        valueChange:
+          type: object
+          additionalProperties: true
+
+    AuditLogList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogEvent"
+        meta:
+          type: object
+          additionalProperties: true
