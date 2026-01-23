@@ -135,7 +135,8 @@ paths:
         - name: startDate
           in: query
           required: false
-          description: Start date (YYYY-MM). Default: last 12 months.
+          description: |
+            Start date (YYYY-MM). Default: last 12 months.
           schema:
             type: string
             pattern: '^\d{4}-\d{2}$'
