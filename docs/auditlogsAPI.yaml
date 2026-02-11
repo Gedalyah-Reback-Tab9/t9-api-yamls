@@ -6,7 +6,7 @@ info:
     OpenAPI YAML derived from Tabnine Docs "Audit Logs API" section.
 
     Notes:
-    - Docs show the relative URLs `/organization/audit_logs?limit=50&offset=0` (JSON) and
+    - Docs show the relative URLs `/organization/audit-logs?limit=50&offset=0` (JSON) and
       `/organization/audit-logs?csv-format` (CSV). This spec assumes the same `/api/v1` base
       used by other Tabnine APIs on the same page.
     - The audit log event schema is not specified in the docs; schemas below are placeholders
@@ -25,7 +25,7 @@ tags:
   - name: Audit Logs
 
 paths:
-  /api/v1/organization/audit_logs:
+  /api/v1/organization/audit-logs:
     get:
       tags: [Audit Logs]
       summary: Get audit logs (JSON)
