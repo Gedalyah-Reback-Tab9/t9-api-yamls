@@ -540,8 +540,19 @@ components:
         to: { type: string, format: date-time }
         activeUsers: { type: integer, minimum: 0 }
         productivityFactor: { type: number }
-        codeCompletions: { $ref: "#/components/schemas/CodeCompletions" }
-        chat: { $ref: "#/components/schemas/ChatUsage" }
+        instruct:
+          type: object
+          description: Instruct usage metrics.
+          properties:
+            acceptedCount:
+              type: integer
+              minimum: 0
+        codeCompletions:
+          $ref: "#/components/schemas/CodeCompletions"
+        chat:
+          $ref: "#/components/schemas/ChatUsage"
+        agent:
+          $ref: "#/components/schemas/AgentUsage"
 
     CodeCompletions:
       type: object
@@ -562,6 +573,34 @@ components:
         lines: { type: integer, minimum: 0 }
         charsCompleted: { type: integer, minimum: 0 }
         chatConsumptionRate: { type: number }
+
+    AgentUsage:
+      type: object
+      properties:
+        activeUsers:
+          type: integer
+          minimum: 0
+          description: Number of unique users who interacted with the agent in the bucket.
+        interactions:
+          type: integer
+          minimum: 0
+          description: Number of agent interactions in the bucket.
+        linesAdded:
+          type: integer
+          minimum: 0
+          description: Total lines of code added by the agent.
+        linesAddedAccepted:
+          type: integer
+          minimum: 0
+          description: Lines of code added by the agent that were accepted by users.
+        linesRemoved:
+          type: integer
+          minimum: 0
+          description: Total lines of code removed by the agent.
+        linesRemovedAccepted:
+          type: integer
+          minimum: 0
+          description: Lines of code removed by the agent that remained accepted by users.
 
     OrgUsageResponse:
       type: object
