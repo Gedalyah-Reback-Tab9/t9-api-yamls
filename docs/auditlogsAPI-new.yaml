@@ -1,13 +1,15 @@
 openapi: 3.0.3
 info:
   title: Organization Audit Logs API
-  version: 1.0.0
+  version: 1.0.1
   description: |
     API for retrieving organization-level audit log events, such as
     user management and team membership changes.
 
-    This spec is designed for read-only access to audit events, with
-    support for filtering, sorting, and pagination.
+    Supports:
+    - Filtering by time range, event type, actor, and resource.
+    - Offset-based pagination with `limit` and `offset`.
+    - CSV download via `format=csv`.
 
 servers:
   - url: https://api.example.com
@@ -29,7 +31,13 @@ paths:
         Returns a paginated list of audit log events for the organization.
 
         Supports filtering by time range, event type, actor, and resource,
-        as well as sorting by timestamp.
+        as well as offset-based pagination and CSV download.
+
+        Examples:
+        - JSON with pagination:
+          `/api/v1/organization/audit-logs?limit=50&offset=0`
+        - CSV download:
+          `/api/v1/organization/audit-logs?format=csv`
       operationId: listAuditLogs
       security:
         - ApiKeyAuth: []
@@ -109,28 +117,65 @@ paths:
           in: query
           description: |
             Maximum number of events to return in a single page.
-            Defaults to 50. Maximum is 1000.
+
+            Used together with `offset` for offset-based pagination.
+
+            Examples:
+            - `/api/v1/organization/audit-logs?limit=50&offset=0`
+            - `/api/v1/organization/audit-logs?limit=50&offset=50`
           required: false
           schema:
             type: integer
             minimum: 1
             maximum: 1000
             default: 50
-        - name: cursor
+        - name: offset
           in: query
           description: |
-            Cursor for pagination. Use the `nextCursor` value from a previous
-            response to fetch the next page of results.
+            Number of items to skip before starting to collect the result set.
+
+            Used together with `limit` for offset-based pagination.
+
+            Examples:
+            - First page:  `/api/v1/organization/audit-logs?limit=50&offset=0`
+            - Second page: `/api/v1/organization/audit-logs?limit=50&offset=50`
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: format
+          in: query
+          description: |
+            Output format of the response.
+
+            - `json` (default) — returns a JSON body.
+            - `csv`           — returns a CSV file download.
+
+            Example:
+            - `/api/v1/organization/audit-logs?format=csv`
           required: false
           schema:
             type: string
+            enum: [json, csv]
+            default: json
       responses:
         '200':
-          description: A paginated list of audit log events.
+          description: A paginated list of audit log events, in JSON or CSV format.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuditLogPage'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              examples:
+                sample:
+                  summary: Sample CSV export
+                  value: |
+                    id,timestamp,eventType,actor.id,actor.email,resource.type,resource.id
+                    evt_01H8YJ2B0FNYG123456789ABCD,2025-02-24T10:15:30Z,team_member.added,user_123,jane@example.com,team,team_987654
         '400':
           description: Invalid request parameters.
           content:
@@ -179,20 +224,22 @@ components:
           description: List of audit log events.
           items:
             $ref: '#/components/schemas/AuditLogEvent'
-        nextCursor:
-          type: string
-          nullable: true
-          description: |
-            Cursor to fetch the next page of results.
-            `null` if there are no more results.
-        previousCursor:
-          type: string
-          nullable: true
-          description: |
-            Cursor to fetch the previous page of results.
-            `null` if this is the first page.
+        total:
+          type: integer
+          description: Total number of items matching the filter (may be approximate).
+          example: 1234
+        limit:
+          type: integer
+          description: Maximum number of items returned in this page.
+          example: 50
+        offset:
+          type: integer
+          description: Offset used for this page.
+          example: 0
       required:
         - items
+        - limit
+        - offset
 
     AuditLogEvent:
       type: object
