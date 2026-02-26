@@ -605,7 +605,6 @@ components:
           example:
             message: "Unauthorized. Valid ID token required."
             status: 401
-
     InternalServerError:
       description: Internal server error
       content:
