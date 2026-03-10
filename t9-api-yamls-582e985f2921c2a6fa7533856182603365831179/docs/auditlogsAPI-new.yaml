@@ -1,0 +1,390 @@
+openapi: 3.0.3
+info:
+  title: Organization Audit Logs API
+  version: 1.0.1
+  description: |
+    API for retrieving organization-level audit log events, such as
+    user management and team membership changes.
+
+    Supports:
+    - Filtering by time range, event type, actor, and resource.
+    - Offset-based pagination with `limit` and `offset`.
+    - CSV download via `format=csv`.
+
+servers:
+  - url: https://api.example.com
+    description: Production API server
+  - url: https://staging-api.example.com
+    description: Staging API server
+
+tags:
+  - name: Audit Logs
+    description: Retrieve organization audit log events.
+
+paths:
+  /api/v1/organization/audit-logs:
+    get:
+      tags:
+        - Audit Logs
+      summary: List audit log events
+      description: |
+        Returns a paginated list of audit log events for the organization.
+
+        Supports filtering by time range, event type, actor, and resource,
+        as well as offset-based pagination and CSV download.
+
+        Examples:
+        - JSON with pagination:
+          `/api/v1/organization/audit-logs?limit=50&offset=0`
+        - CSV download:
+          `/api/v1/organization/audit-logs?format=csv`
+      operationId: listAuditLogs
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: from
+          in: query
+          description: |
+            Start of time range to filter events (inclusive), in ISO 8601 format.
+            Example: `2025-01-01T00:00:00Z`
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: |
+            End of time range to filter events (exclusive), in ISO 8601 format.
+            Example: `2025-01-31T23:59:59Z`
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: eventType
+          in: query
+          description: |
+            Filter by a specific event type.
+
+            Common values might include:
+            - `team_member.added`
+            - `team_member.removed`
+            - `team_member.updated`
+            - `role.assigned`
+            - `role.revoked`
+          required: false
+          schema:
+            type: string
+        - name: actorId
+          in: query
+          description: Filter by the unique ID of the actor who triggered the event.
+          required: false
+          schema:
+            type: string
+        - name: actorEmail
+          in: query
+          description: Filter by the email address of the actor who triggered the event.
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: resourceType
+          in: query
+          description: |
+            Filter by the type of resource affected by the event.
+            For example: `team`, `user`, `role`, `organization`.
+          required: false
+          schema:
+            type: string
+        - name: resourceId
+          in: query
+          description: Filter by the unique ID of the resource affected by the event.
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: |
+            Sort order for results by timestamp.
+
+            - `asc`  - ascending (oldest first)
+            - `desc` - descending (newest first, default)
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          description: |
+            Maximum number of events to return in a single page.
+
+            Used together with `offset` for offset-based pagination.
+
+            Examples:
+            - `/api/v1/organization/audit-logs?limit=50&offset=0`
+            - `/api/v1/organization/audit-logs?limit=50&offset=50`
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+        - name: offset
+          in: query
+          description: |
+            Number of items to skip before starting to collect the result set.
+
+            Used together with `limit` for offset-based pagination.
+
+            Examples:
+            - First page:  `/api/v1/organization/audit-logs?limit=50&offset=0`
+            - Second page: `/api/v1/organization/audit-logs?limit=50&offset=50`
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: format
+          in: query
+          description: |
+            Output format of the response.
+
+            - `json` (default) — returns a JSON body.
+            - `csv`           — returns a CSV file download.
+
+            Example:
+            - `/api/v1/organization/audit-logs?format=csv`
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        '200':
+          description: A paginated list of audit log events, in JSON or CSV format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogPage'
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              examples:
+                sample:
+                  summary: Sample CSV export
+                  value: |
+                    id,timestamp,eventType,actor.id,actor.email,resource.type,resource.id
+                    evt_01H8YJ2B0FNYG123456789ABCD,2025-02-24T10:15:30Z,team_member.added,user_123,jane@example.com,team,team_987654
+        '400':
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication failed or missing credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The client is authenticated but not authorized to view audit logs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests (rate limit exceeded).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    AuditLogPage:
+      type: object
+      description: Paginated audit log results.
+      properties:
+        items:
+          type: array
+          description: List of audit log events.
+          items:
+            $ref: '#/components/schemas/AuditLogEvent'
+        total:
+          type: integer
+          description: Total number of items matching the filter (may be approximate).
+          example: 1234
+        limit:
+          type: integer
+          description: Maximum number of items returned in this page.
+          example: 50
+        offset:
+          type: integer
+          description: Offset used for this page.
+          example: 0
+      required:
+        - items
+        - limit
+        - offset
+
+    AuditLogEvent:
+      type: object
+      description: A single audit log event.
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the audit log event.
+          example: "evt_01H8YJ2B0FNYG123456789ABCD"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the event occurred (in UTC).
+          example: "2025-02-24T10:15:30Z"
+        eventType:
+          type: string
+          description: |
+            Machine-readable type of the event.
+
+            Examples:
+            - `team_member.added`
+            - `team_member.removed`
+            - `team_member.updated`
+            - `role.assigned`
+            - `role.revoked`
+          example: "team_member.added"
+        actor:
+          $ref: '#/components/schemas/AuditLogActor'
+        resource:
+          $ref: '#/components/schemas/AuditLogResource'
+        metadata:
+          type: object
+          description: |
+            Additional structured data about the event.
+            Keys and values may vary depending on event type.
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: array
+                items:
+                  type: string
+        request:
+          $ref: '#/components/schemas/AuditLogRequestContext'
+      required:
+        - id
+        - timestamp
+        - eventType
+
+    AuditLogActor:
+      type: object
+      description: The actor who initiated the event.
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the actor (user, system, or API key).
+          example: "user_123456"
+        type:
+          type: string
+          description: Type of actor.
+          enum:
+            - user
+            - system
+            - api_key
+          example: "user"
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: Email address of the actor, if applicable.
+          example: "admin@example.com"
+        displayName:
+          type: string
+          nullable: true
+          description: Human-readable name of the actor, if available.
+          example: "Jane Admin"
+      required:
+        - id
+        - type
+
+    AuditLogResource:
+      type: object
+      description: The resource affected by the event.
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the resource.
+          example: "team_987654"
+        type:
+          type: string
+          description: Type of resource.
+          example: "team"
+        name:
+          type: string
+          nullable: true
+          description: Human-readable name of the resource, if applicable.
+          example: "Engineering"
+      required:
+        - id
+        - type
+
+    AuditLogRequestContext:
+      type: object
+      description: Request-level context for the audit event.
+      properties:
+        ipAddress:
+          type: string
+          description: IP address from which the request originated.
+          example: "203.0.113.42"
+        userAgent:
+          type: string
+          description: User agent string of the client.
+          example: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        clientId:
+          type: string
+          nullable: true
+          description: |
+            Identifier of the client application (if applicable),
+            for example an OAuth client ID or integration ID.
+          example: "cli_abc123"
+        requestId:
+          type: string
+          nullable: true
+          description: |
+            Internal request identifier for traceability.
+          example: "req_01H8YJ2B0FNYG123456789ABCD"
+
+    ErrorResponse:
+      type: object
+      description: Error response payload.
+      properties:
+        error:
+          type: string
+          description: Short, machine-readable error code.
+          example: "invalid_request"
+        message:
+          type: string
+          description: Human-readable description of the error.
+          example: "The 'from' parameter must be earlier than 'to'."
+        requestId:
+          type: string
+          nullable: true
+          description: Internal request identifier for troubleshooting.
+          example: "req_01H8YJ2B0FNYG123456789ABCD"
+      required:
+        - error
+        - message

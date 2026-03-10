@@ -1,0 +1,866 @@
+openapi: 3.0.3
+info:
+  title: Tabnine Auth Service – v1 Team/User/Invitation APIs
+  version: "1.0.0"
+  description: >
+    Non-SCIM v1 endpoints for managing teams, users, allowed teams, and invitations.
+
+servers:
+  - url: https://auth.example.com
+    description: Auth service base URL
+
+paths:
+  ############################################################
+  # Team
+  ############################################################
+  /api/team/v1:
+    post:
+      summary: Create a new team
+      operationId: createTeamV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Team
+      description: |
+        Create a new team within the caller's organization.
+
+        Auth:
+        - Admin
+        - Manager
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeamRequest"
+      responses:
+        "201":
+          description: Team created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Team with the same name already exists
+        "500":
+          description: Server error
+
+  /api/team/v1/{teamId}:
+    get:
+      summary: Get a team
+      operationId: getTeamV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Team
+      description: |
+        Retrieve a single team by its ID.
+
+        Auth:
+        - Admin
+        - Manager
+        - TeamLead (only for their own team)
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Team UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Team found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Team not found
+        "500":
+          description: Server error
+    put:
+      summary: Rename a team
+      operationId: renameTeamV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Team
+      description: |
+        Rename an existing team.
+
+        Auth:
+        - Admin
+        - Manager
+
+        Notes:
+        - Cannot rename synced teams; attempting to do so returns 400.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Team UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenameTeamRequest"
+      responses:
+        "200":
+          description: Team renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          description: Invalid request or attempting to rename a synced team
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Team not found
+        "500":
+          description: Server error
+
+  ############################################################
+  # User
+  ############################################################
+  /api/user/v1/{userId}:
+    get:
+      summary: Get user info
+      operationId: getUserV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+      description: |
+        Get user details including allowed teams and primary team.
+
+        Auth:
+        - Admin
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+    patch:
+      summary: Update user properties
+      operationId: updateUserV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+      description: |
+        Update user properties such as role, active status, and team assignment.
+
+        Auth:
+        - Admin
+        - Manager (with role hierarchy checks)
+
+        Notes:
+        - Cannot modify self.
+        - Cannot modify instance admins or anonymized users.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericSuccessResponse"
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions or role hierarchy violation
+        "404":
+          description: User not found
+        "409":
+          description: Conflict (e.g., invalid state)
+        "500":
+          description: Server error
+
+  /api/user/v1/by-email/{email}:
+    get:
+      summary: Get user by email
+      operationId: getUserByEmailV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+      description: |
+        Look up a user by email address.
+
+        Auth:
+        - Admin
+        - Manager
+
+        Returns 404 if the user is not found or belongs to a different organization.
+      parameters:
+        - name: email
+          in: path
+          required: true
+          description: URL-encoded email address
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLookup"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User not found or belongs to a different org
+        "500":
+          description: Server error
+
+  /api/user/v1/{userId}/allowed-teams:
+    get:
+      summary: List user's allowed teams
+      operationId: listAllowedTeamsV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+        - AllowedTeams
+      description: |
+        List teams a user is allowed to access.
+
+        Auth:
+        - Admin
+        - Manager
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of allowed teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+    patch:
+      summary: Add teams to user's allowed list
+      operationId: addAllowedTeamsV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+        - AllowedTeams
+      description: |
+        Add teams to a user's allowed-teams list.
+
+        Auth:
+        - Admin
+        - Manager
+
+        Notes:
+        - Idempotent: adding an already-allowed team is a no-op.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllowedTeamsRequest"
+      responses:
+        "200":
+          description: Teams added to allowed list
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User or team not found
+        "500":
+          description: Server error
+    delete:
+      summary: Remove teams from user's allowed list
+      operationId: removeAllowedTeamsV1
+      security:
+        - bearerAuth: []
+      tags:
+        - User
+        - AllowedTeams
+      description: |
+        Remove teams from a user's allowed-teams list.
+
+        Auth:
+        - Admin
+        - Manager
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllowedTeamsRequest"
+      responses:
+        "200":
+          description: Teams removed from allowed list
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User or team not found
+        "500":
+          description: Server error
+
+  ############################################################
+  # Invitation
+  ############################################################
+  /api/invitation/v1:
+    post:
+      summary: Invite a user to a team
+      operationId: createInvitationV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Invitation
+      description: |
+        Invite a user by email to a team with a role.
+
+        Auth:
+        - Admin
+        - Manager (with role hierarchy checks)
+
+        Behavior:
+        - If the user does not exist, creates an invitation.
+        - If the user exists, adds them to the team.
+
+        Status codes:
+        - 201 when a new invitation is created.
+        - 200 when an existing user is added to the team.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvitationRequest"
+      responses:
+        "200":
+          description: Existing user added to team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateInvitationResponseExisting"
+        "201":
+          description: Invitation created for new user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateInvitationResponseNew"
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions or role hierarchy violation
+        "404":
+          description: Team not found
+        "409":
+          description: Conflict (e.g., invitation already exists)
+        "500":
+          description: Server error
+    get:
+      summary: List invitations
+      operationId: listInvitationsV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Invitation
+      description: |
+        List pending invitations, optionally filtered by team.
+
+        Auth:
+        - Admin
+        - Manager
+      parameters:
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset for pagination
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Page size
+        - name: teamId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter invitations by team ID
+      responses:
+        "200":
+          description: List of invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListInvitationsResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "500":
+          description: Server error
+    delete:
+      summary: Revoke invitations
+      operationId: revokeInvitationsV1
+      security:
+        - bearerAuth: []
+      tags:
+        - Invitation
+      description: |
+        Revoke (soft-delete) invitations by IDs.
+
+        Auth:
+        - Admin
+        - Manager (with role hierarchy checks)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeInvitationsRequest"
+      responses:
+        "200":
+          description: Invitations revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevokeInvitationsResponse"
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Invitations not found
+        "500":
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ########################################
+    # Common / User / Team
+    ########################################
+    Role:
+      type: string
+      enum: [Member, TeamLead, Manager, Admin]
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        organizationId:
+          type: string
+          format: uuid
+        syncedGroupId:
+          type: string
+          nullable: true
+          description: Optional ID of synced external group
+      required:
+        - id
+        - name
+        - organizationId
+
+    CreateTeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required:
+        - name
+
+    RenameTeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required:
+        - name
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        verified:
+          type: boolean
+        active:
+          type: boolean
+        team:
+          $ref: "#/components/schemas/Team"
+          nullable: true
+        allowedTeams:
+          type: array
+          items:
+            $ref: "#/components/schemas/Team"
+      required:
+        - id
+        - email
+        - role
+        - verified
+        - active
+
+    GetUserResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          description: Primary user info including allowedTeams
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            role:
+              $ref: "#/components/schemas/Role"
+            active:
+              type: boolean
+            allowedTeams:
+              type: array
+              items:
+                $ref: "#/components/schemas/Team"
+          required:
+            - user_id
+            - email
+            - role
+        teams:
+          type: object
+          description: Primary team information
+          properties:
+            team_id:
+              type: string
+              nullable: true
+            team_name:
+              type: string
+              nullable: true
+      required:
+        - user
+        - teams
+
+    UserLookup:
+      type: object
+      description: User object returned by /api/user/v1/by-email
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        verified:
+          type: boolean
+        active:
+          type: boolean
+        team:
+          $ref: "#/components/schemas/Team"
+          nullable: true
+        allowedTeams:
+          type: array
+          items:
+            $ref: "#/components/schemas/Team"
+      required:
+        - id
+        - email
+        - role
+        - verified
+
+    UpdateUserRequest:
+      type: object
+      description: >
+        Fields to update on the user. All are optional; only provided fields
+        will be changed.
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+        active:
+          type: boolean
+        teamId:
+          type: string
+          format: uuid
+          nullable: true
+      additionalProperties: false
+
+    GenericSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    AllowedTeamsRequest:
+      type: object
+      properties:
+        teamIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      required:
+        - teamIds
+
+    ########################################
+    # Invitation
+    ########################################
+    CreateInvitationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        teamId:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/Role"
+      required:
+        - email
+        - teamId
+        - role
+
+    CreateInvitationResponseNew:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        userExists:
+          type: boolean
+          example: false
+        invitationId:
+          type: string
+          format: uuid
+      required:
+        - success
+        - message
+        - userExists
+        - invitationId
+
+    CreateInvitationResponseExisting:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        userExists:
+          type: boolean
+          example: true
+        userId:
+          type: string
+          format: uuid
+      required:
+        - success
+        - message
+        - userExists
+        - userId
+
+    Invitation:
+      type: object
+      description: Invitation entity
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        teamId:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/Role"
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - email
+        - teamId
+        - role
+        - createdAt
+
+    ListInvitationsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            total:
+              type: integer
+            next:
+              type: integer
+              nullable: true
+              description: Offset for the next page, if any
+          required:
+            - count
+            - total
+      required:
+        - data
+        - meta
+
+    RevokeInvitationsRequest:
+      type: object
+      properties:
+        invitationIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      required:
+        - invitationIds
+
+    RevokeInvitationsResponse:
+      type: object
+      properties:
+        revoked:
+          type: integer
+          description: Number of invitations revoked
+      required:
+        - revoked

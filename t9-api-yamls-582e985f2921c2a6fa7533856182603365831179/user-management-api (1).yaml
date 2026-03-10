@@ -1,0 +1,476 @@
+openapi: 3.0.3
+info:
+  title: User Management API
+  description: |
+    API endpoints for user invitation and management in the Auth Service.
+    
+    These endpoints allow administrators and managers to:
+    - Invite new users to teams via email
+    - Update existing user properties (role, activation status, team assignment)
+    
+    All endpoints require authentication and appropriate role permissions.
+  version: 1.0.0
+  contact:
+    name: Auth Service Team
+
+servers:
+  - url: /api
+    description: API base path
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: User Invitation
+    description: Invite users to teams via email
+  - name: User Management
+    description: Manage existing users (role, status, team)
+
+paths:
+  /invitation/v1:
+    post:
+      tags:
+        - User Invitation
+      summary: Invite user by email
+      description: |
+        Invite a user to join a team with a specific role.
+        
+        **Behavior:**
+        - If the user already exists in the organization, they will be immediately added to the team
+        - If the user doesn't exist, an invitation email will be sent
+        
+        **Role Assignment Permissions:**
+        - **Admin** can invite users with any role (Member, TeamLead, Manager, Admin)
+        - **Manager** can invite users with Member, TeamLead, or Manager roles (cannot invite Admin)
+        
+        **Restrictions:**
+        - Cannot invite users to teams that have been synced from external groups
+        - Team must belong to the same organization as the inviter
+      operationId: inviteUserByEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteUserRequest'
+            examples:
+              inviteNewUser:
+                summary: Invite new user (will receive email)
+                value:
+                  email: "newuser@example.com"
+                  teamId: "123e4567-e89b-12d3-a456-426614174000"
+                  role: "Member"
+              inviteExistingUser:
+                summary: Invite existing user (immediate assignment)
+                value:
+                  email: "existing@example.com"
+                  teamId: "123e4567-e89b-12d3-a456-426614174000"
+                  role: "TeamLead"
+              inviteAsManager:
+                summary: Manager inviting with Manager role
+                value:
+                  email: "manager@example.com"
+                  teamId: "123e4567-e89b-12d3-a456-426614174000"
+                  role: "Manager"
+      responses:
+        '200':
+          description: Existing user successfully added to team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteUserExistingResponse'
+              example:
+                success: true
+                message: "Existing user successfully added to team"
+                userExists: true
+                userId: "987e6543-e21b-12d3-a456-426614174999"
+        '201':
+          description: Invitation email sent successfully to new user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteUserNewResponse'
+              example:
+                success: true
+                message: "Invitation email sent successfully"
+                userExists: false
+                invitationId: "456e7890-e89b-12d3-a456-426614174111"
+        '400':
+          description: Bad request - Invalid input or team constraints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidTeam:
+                  summary: Team doesn't belong to organization
+                  value:
+                    message: "Team does not belong to this organization"
+                    status: 400
+                syncedTeam:
+                  summary: Cannot invite to synced team
+                  value:
+                    message: "Cannot invite users to a team that has been synced from a group"
+                    status: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Insufficient permissions to assign role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Insufficient permissions to assign this role"
+                status: 403
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Team not found"
+                status: 404
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+  /user/v1/{userId}:
+    patch:
+      tags:
+        - User Management
+      summary: Update user
+      description: |
+        Update user properties including role, activation status, and team assignment.
+        
+        **Available Updates:**
+        - **role**: Change the user's role in the organization
+        - **active**: Activate or deactivate the user
+        - **teamId**: Assign user to a team (or remove from team with `null`)
+        
+        **Role Update Permissions:**
+        - Acting user must have sufficient permissions to modify the target user's current role
+        - Acting user must have sufficient permissions to assign the new role
+        - **Admin** can assign any role
+        - **Manager** can assign Member, TeamLead, or Manager roles (cannot assign Admin)
+        
+        **Restrictions:**
+        - Cannot modify own account
+        - Cannot modify anonymized users
+        - Cannot modify instance administrators
+        - Cannot activate/deactivate or change team assignment for synced users
+        
+        All fields are optional - provide only the fields you want to update.
+      operationId: patchUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The unique identifier of the user to update
+          schema:
+            type: string
+            format: uuid
+          example: "987e6543-e21b-12d3-a456-426614174999"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserRequest'
+            examples:
+              updateRole:
+                summary: Update user role only
+                value:
+                  role: "Manager"
+              deactivateUser:
+                summary: Deactivate user
+                value:
+                  active: false
+              changeTeam:
+                summary: Assign to different team
+                value:
+                  teamId: "456e7890-e89b-12d3-a456-426614174111"
+              removeFromTeam:
+                summary: Remove from team
+                value:
+                  teamId: null
+              updateMultiple:
+                summary: Update role and team
+                value:
+                  role: "TeamLead"
+                  teamId: "456e7890-e89b-12d3-a456-426614174111"
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: "User updated successfully"
+        '400':
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Invalid role specified"
+                status: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Insufficient permissions or unauthorized action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                selfModification:
+                  summary: Cannot modify own account
+                  value:
+                    message: "Cannot modify your own user account"
+                    status: 403
+                instanceAdmin:
+                  summary: Cannot modify instance admin
+                  value:
+                    message: "Cannot modify instance administrator"
+                    status: 403
+                teamNotInOrg:
+                  summary: Team doesn't belong to organization
+                  value:
+                    message: "Team does not belong to this organization"
+                    status: 403
+        '404':
+          description: User or team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  summary: User not found
+                  value:
+                    message: "User not found in organization"
+                    status: 404
+                teamNotFound:
+                  summary: Team not found
+                  value:
+                    message: "Team not found"
+                    status: 404
+        '409':
+          description: Conflict - User state prevents modification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                anonymizedUser:
+                  summary: User is anonymized
+                  value:
+                    message: "Cannot modify anonymized user"
+                    status: 409
+                syncedUserActive:
+                  summary: Cannot change active status of synced user
+                  value:
+                    message: "Cannot activate or deactivate synced user"
+                    status: 409
+                syncedUserTeam:
+                  summary: Cannot change team of synced user
+                  value:
+                    message: "Cannot modify team assignment for synced user"
+                    status: 409
+        '422':
+          description: Unprocessable Entity - Insufficient permissions for role operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficientPermissionsForUser:
+                  summary: Cannot modify this user
+                  value:
+                    message: "Insufficient permissions to modify this user"
+                    status: 422
+                insufficientPermissionsForRole:
+                  summary: Cannot assign this role
+                  value:
+                    message: "Insufficient permissions to assign this role"
+                    status: 422
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT ID Token obtained from authentication endpoints.
+        
+        **Required Roles:**
+        - **POST /invitation/v1**: Admin or Manager
+        - **PATCH /user/v1/:userId**: Admin or Manager
+        
+        Include in the Authorization header as: `Bearer {token}`
+
+  schemas:
+    InviteUserRequest:
+      type: object
+      required:
+        - email
+        - teamId
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address of the user to invite
+          example: "user@example.com"
+        teamId:
+          type: string
+          format: uuid
+          description: UUID of the team to invite the user to
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        role:
+          type: string
+          enum: [Member, TeamLead, Manager, Admin]
+          description: |
+            Role to assign to the user.
+            - Admin can assign any role
+            - Manager can assign Member, TeamLead, Manager (not Admin)
+          example: "Member"
+
+    InviteUserExistingResponse:
+      type: object
+      required:
+        - success
+        - message
+        - userExists
+        - userId
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Existing user successfully added to team"
+        userExists:
+          type: boolean
+          example: true
+          description: Indicates the user already existed in the organization
+        userId:
+          type: string
+          format: uuid
+          description: UUID of the existing user
+          example: "987e6543-e21b-12d3-a456-426614174999"
+
+    InviteUserNewResponse:
+      type: object
+      required:
+        - success
+        - message
+        - userExists
+        - invitationId
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Invitation email sent successfully"
+        userExists:
+          type: boolean
+          example: false
+          description: Indicates a new invitation was created
+        invitationId:
+          type: string
+          format: uuid
+          description: UUID of the created invitation
+          example: "456e7890-e89b-12d3-a456-426614174111"
+
+    PatchUserRequest:
+      type: object
+      description: All fields are optional. Provide only the fields you want to update.
+      properties:
+        role:
+          type: string
+          enum: [Member, TeamLead, Manager, Admin]
+          description: |
+            New role to assign to the user.
+            Acting user must have sufficient permissions to assign this role.
+          example: "Manager"
+        active:
+          type: boolean
+          description: |
+            Activation status of the user.
+            Cannot be modified for synced users.
+          example: true
+        teamId:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            UUID of the team to assign the user to.
+            Set to `null` to remove the user from their current team.
+            Cannot be modified for synced users.
+          example: "456e7890-e89b-12d3-a456-426614174111"
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User updated successfully"
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message describing what went wrong
+          example: "User not found in organization"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized - Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Unauthorized. Valid ID token required."
+            status: 401
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Internal server error"
+            status: 500
+
