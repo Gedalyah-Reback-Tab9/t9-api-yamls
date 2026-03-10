@@ -1,5 +1,0 @@
-  occurredAt:
-    type: string
-    format: date-time
-    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,2})?Z$'
-    description: "Timestamp when the event occurred (in UTC), with precision limited to centiseconds (hundredths of a second). Examples: 2025-02-24T10:15:30Z, 2025-02-24T10:15:30.5Z, 2025-02-24T10:15:30.56Z"
