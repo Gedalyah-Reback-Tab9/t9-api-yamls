@@ -1,1297 +1,1308 @@
 openapi: 3.0.3
 info:
   title: Tabnine Platform API
-  version: 1.0.0
-  description: 'Unified API specification for the Tabnine platform, including:
-
+  version: "6.1.0"
+  description: |
+    Unified API specification for the Tabnine platform, including:
     - Organization management and usage metrics
-
     - Team management and repository connections
-
     - User management and invitations
-
     - Audit logs
-
     - License information
-
     - Usage analytics (agent, chat, code completions)
+    - Agent usage with per-model token and cost data and IDE vs CLI agent-type breakdown
 
-    '
 servers:
-- url: https://console.tabnine.com
-  description: Production Console API
-- url: https://auth.example.com
-  description: Auth Service API
-- url: https://api.example.com
-  description: General API Server
+  - url: https://console.tabnine.com
+    description: Production Console API
+  - url: https://auth.example.com
+    description: Auth Service API
+  - url: https://api.example.com
+    description: General API Server
+
 security:
-- bearerAuth: []
+  - bearerAuth: []
+
 tags:
-- name: Organization
-  description: Organization-level information and settings
-- name: Teams
-  description: Team creation, management, and usage
-- name: Users
-  description: User management and information
-- name: Invitations
-  description: User invitation management
-- name: Audit Logs
-  description: Organization audit log events
-- name: Repositories
-  description: Team repository connection management
-- name: License
-  description: License information and utilization
-- name: Usage Metrics
-  description: Usage analytics across tools (agent, chat, completions)
+  - name: Organization
+    description: Organization-level information and settings
+  - name: Teams
+    description: Team creation, management, and usage
+  - name: Users
+    description: User management and information
+  - name: Invitations
+    description: User invitation management
+  - name: Audit Logs
+    description: Organization audit log events
+  - name: Repositories
+    description: Team repository connection management
+  - name: License
+    description: License information and utilization
+  - name: Usage Metrics
+    description: Usage analytics across tools (agent, chat, completions)
+  - name: Agent Usage
+    description: Per-model token and cost data and IDE vs CLI agent-type breakdown
+
 paths:
+  # ========================================
+  # ORGANIZATION
+  # ========================================
   /api/v1/organization:
     get:
-      tags:
-      - Organization
+      tags: [Organization]
       summary: Get current organization
       description: Get current organization ID and high-level settings
       operationId: getOrganization
       responses:
-        '200':
+        "200":
           description: Organization information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Organization'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/Organization"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/organization/account-utilizations:
     get:
-      tags:
-      - Organization
-      - License
+      tags: [Organization, License]
       summary: Get account utilization info
-      description: Get monthly account utilization (registered, deactivated, active,
-        pending users)
+      description: Get monthly account utilization (registered, deactivated, active, pending users)
       operationId: getAccountUtilizations
       parameters:
-      - name: startDate
-        in: query
-        required: false
-        description: Start date for showing utilization (YYYY-MM). Default is last
-          12 months.
-        schema:
-          type: string
-          pattern: ^\d{4}-\d{2}$
-        example: 2025-01
+        - name: startDate
+          in: query
+          required: false
+          description: Start date for showing utilization (YYYY-MM). Default is last 12 months.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+          example: "2025-01"
       responses:
-        '200':
+        "200":
           description: Monthly utilization data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountUtilizations'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/AccountUtilizations"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/organization/users:
     get:
-      tags:
-      - Organization
-      - Users
+      tags: [Organization, Users]
       summary: Get organization users
-      description: 'Get users in the organization. Can filter by team membership and
-        active status.
-
+      description: |
+        Get users in the organization. Can filter by team membership and active status.
         Use `teamMember=false` to get users not assigned to any team.
-
-        '
       operationId: getOrganizationUsers
       parameters:
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 200
-        description: Maximum number of items to return
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-        description: Number of items to skip
-      - name: teamMember
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by team membership. Use false for unassigned users.
-      - name: active
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by active status. true=registered, false=deactivated.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 200
+          description: Maximum number of items to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of items to skip
+        - name: teamMember
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter by team membership. Use false for unassigned users.
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active status. true=registered, false=deactivated.
       responses:
-        '200':
+        "200":
           description: Paginated list of users
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedUsersResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/PaginatedUsersResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/organization/usage:
     get:
-      tags:
-      - Usage Metrics
-      - Organization
+      tags: [Usage Metrics, Organization]
       summary: Get organization usage
-      description: 'Returns aggregated usage metrics for an organization over a given
-        time range.
-
+      description: |
+        Returns aggregated usage metrics for an organization over a given time range.
         Includes per-tool metrics for agent, chat, code completions, and instruct.
-
-        '
       operationId: getOrganizationUsage
       parameters:
-      - name: organizationId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/from'
-      - $ref: '#/components/parameters/to'
-      - $ref: '#/components/parameters/granularity'
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
       responses:
-        '200':
+        "200":
           description: Organization usage data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationUsageResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/OrganizationUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/organization/teams:
     get:
-      tags:
-      - Teams
-      - Organization
+      tags: [Teams, Organization]
       summary: List teams
       description: Get list of teams for the organization
       operationId: listOrganizationTeams
       parameters:
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 50
       responses:
-        '200':
+        "200":
           description: List of teams
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamListResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/TeamListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/organization/audit-logs:
     get:
-      tags:
-      - Audit Logs
+      tags: [Audit Logs]
       summary: List audit log events
-      description: 'Returns a paginated list of audit log events for the organization.
-
+      description: |
+        Returns a paginated list of audit log events for the organization.
         Supports filtering by time range, event type, actor, and resource.
-
         Can return JSON or CSV format.
-
-        '
       operationId: listAuditLogs
       parameters:
-      - name: from
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date-time
-        description: Start of time range (inclusive)
-      - name: to
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date-time
-        description: End of time range (exclusive)
-      - name: eventType
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by event type (e.g., team_member.added, role.assigned)
-      - name: actorId
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by actor ID
-      - name: actorEmail
-        in: query
-        required: false
-        schema:
-          type: string
-          format: email
-        description: Filter by actor email
-      - name: resourceType
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by resource type (team, user, role, organization)
-      - name: resourceId
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by resource ID
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-          default: desc
-        description: Sort order by timestamp
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 1000
-          default: 50
-        description: Maximum number of events per page
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-        description: Number of items to skip
-      - name: format
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - json
-          - csv
-          default: json
-        description: Output format (json or csv)
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start of time range (inclusive)
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End of time range (exclusive)
+        - name: eventType
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by event type (e.g., team_member.added, role.assigned)
+        - name: actorId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by actor ID
+        - name: actorEmail
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+          description: Filter by actor email
+        - name: resourceType
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by resource type (team, user, role, organization)
+        - name: resourceId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by resource ID
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order by timestamp
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+          description: Maximum number of events per page
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of items to skip
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+          description: Output format (json or csv)
       responses:
-        '200':
+        "200":
           description: Paginated audit log events
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuditLogPage'
+                $ref: "#/components/schemas/AuditLogPage"
             text/csv:
               schema:
                 type: string
                 format: binary
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # TEAMS
+  # ========================================
   /api/team/v1:
     post:
-      summary: Create a new team
-      operationId: createTeamV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Team
-      description: 'Create a new team within the caller''s organization.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-        '
+      tags: [Teams]
+      summary: Create a team
+      description: |
+        Create a new team within the organization.
+        Requires Admin or Manager role.
+      operationId: createTeam
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTeamRequest'
+              $ref: "#/components/schemas/CreateTeamRequest"
       responses:
-        '201':
+        "201":
           description: Team created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Team'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '409':
+                $ref: "#/components/schemas/Team"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
           description: Team with the same name already exists
-        '500':
-          description: Server error
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/team/v1/{teamId}:
     get:
+      tags: [Teams]
       summary: Get a team
-      operationId: getTeamV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Team
-      description: 'Retrieve a single team by its ID.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-        - TeamLead (only for their own team)
-
-        '
+      description: |
+        Retrieve a single team by ID.
+        Requires Admin, Manager, or TeamLead (own team only).
+      operationId: getTeam
       parameters:
-      - name: teamId
-        in: path
-        required: true
-        description: Team UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/TeamId"
       responses:
-        '200':
-          description: Team found
+        "200":
+          description: Team details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Team'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: Team not found
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/Team"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     put:
+      tags: [Teams]
       summary: Rename a team
-      operationId: renameTeamV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Team
-      description: 'Rename an existing team.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-
-        Notes:
-
-        - Cannot rename synced teams; attempting to do so returns 400.
-
-        '
+      description: |
+        Rename an existing team.
+        Requires Admin or Manager role.
+        Cannot rename synced teams.
+      operationId: renameTeam
       parameters:
-      - name: teamId
-        in: path
-        required: true
-        description: Team UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/TeamId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RenameTeamRequest'
+              $ref: "#/components/schemas/RenameTeamRequest"
       responses:
-        '200':
+        "200":
           description: Team renamed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Team'
-        '400':
+                $ref: "#/components/schemas/Team"
+        "400":
           description: Invalid request or attempting to rename a synced team
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: Team not found
-        '500':
-          description: Server error
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/team/{teamId}/users:
     get:
-      tags:
-      - Teams
-      - Users
+      tags: [Teams, Users]
       summary: Get team users
       description: Get paginated list of users in a team
       operationId: getTeamUsers
       parameters:
-      - $ref: '#/components/parameters/TeamId'
-      - name: offset
-        in: query
-        required: true
-        schema:
-          type: integer
-          minimum: 0
-      - name: limit
-        in: query
-        required: true
-        schema:
-          type: integer
-          minimum: 0
+        - $ref: "#/components/parameters/TeamId"
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
       responses:
-        '200':
+        "200":
           description: Team users
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedUsersResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/PaginatedUsersResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/team/account-utilizations:
     get:
-      tags:
-      - Teams
-      - License
+      tags: [Teams, License]
       summary: Get team utilization
       description: Get current team utilization counts (registered, deactivated, invited)
       operationId: getTeamUtilization
       parameters:
-      - name: teamId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
+        - name: teamId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
-        '200':
+        "200":
           description: Team utilization counts
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamUtilization'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/TeamUtilization"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/team/usage:
     get:
-      tags:
-      - Usage Metrics
-      - Teams
+      tags: [Usage Metrics, Teams]
       summary: Get team usage
       description: Get team-level usage metrics over a time range
       operationId: getTeamUsage
       parameters:
-      - name: organizationId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: teamId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/from'
-      - $ref: '#/components/parameters/to'
-      - $ref: '#/components/parameters/granularity'
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: teamId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
       responses:
-        '200':
+        "200":
           description: Team usage data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamUsageResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/TeamUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/user/usage:
+    get:
+      tags: [Usage Metrics, Users]
+      summary: Get user usage
+      description: Get user-level usage metrics over a time range
+      operationId: getUserUsage
+      parameters:
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
+      responses:
+        "200":
+          description: User usage data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # AGENT USAGE
+  # ========================================
+  # Note: The source spec for these endpoints specifies https://api.tabnine.com as the server.
+  # These endpoints are served from that host; the global server list is unchanged.
+  /api/v1/organization/agent-usage:
+    get:
+      tags: [Agent Usage]
+      summary: Get organization-level agent usage
+      description: >
+        Returns aggregated agent usage for an organization, including
+        per-model token and cost data and IDE vs CLI breakdown.
+        Requires that the Agent feature is enabled in the account license.
+      operationId: getOrganizationAgentUsage
+      parameters:
+        - name: startDate
+          in: query
+          description: Start of the reporting window (inclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End of the reporting window (exclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          description: >
+            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
+            Must match the existing usage APIs.
+          required: false
+          schema:
+            type: string
+        - name: agentType
+          in: query
+          description: >
+            Optional filter by agent type. When specified, the top-level
+            usage fields in each data entry reflect only that agent type.
+            The `agentTypeBreakdown` array still includes all agent types.
+          required: false
+          schema:
+            type: string
+            enum: [ide, cli]
+      responses:
+        "200":
+          description: Organization agent usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationAgentUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Agent feature not available in license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureNotAvailableError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/team/agent-usage:
+    get:
+      tags: [Agent Usage]
+      summary: Get team-level agent usage
+      description: >
+        Returns aggregated agent usage for a team, including
+        per-model token and cost data and IDE vs CLI breakdown.
+        Requires that the Agent feature is enabled in the account license.
+      operationId: getTeamAgentUsage
+      parameters:
+        - name: teamId
+          in: query
+          description: Team identifier.
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Start of the reporting window (inclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End of the reporting window (exclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          description: >
+            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
+            Must match the existing usage APIs.
+          required: false
+          schema:
+            type: string
+        - name: agentType
+          in: query
+          description: >
+            Optional filter by agent type. When specified, the top-level
+            usage fields in each data entry reflect only that agent type.
+            The `agentTypeBreakdown` array still includes all agent types.
+          required: false
+          schema:
+            type: string
+            enum: [ide, cli]
+      responses:
+        "200":
+          description: Team agent usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamAgentUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Agent feature not available in license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureNotAvailableError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/user/agent-usage:
+    get:
+      tags: [Agent Usage]
+      summary: Get user-level agent usage
+      description: >
+        Returns aggregated agent usage for a user, including
+        per-model token and cost data and IDE vs CLI breakdown.
+        Requires that the Agent feature is enabled in the account license.
+      operationId: getUserAgentUsage
+      parameters:
+        - name: userId
+          in: query
+          description: User identifier.
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Start of the reporting window (inclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End of the reporting window (exclusive), ISO 8601 datetime.
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          description: >
+            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
+            Must match the existing usage APIs.
+          required: false
+          schema:
+            type: string
+        - name: agentType
+          in: query
+          description: >
+            Optional filter by agent type. When specified, the top-level
+            usage fields in each data entry reflect only that agent type.
+            The `agentTypeBreakdown` array still includes all agent types.
+          required: false
+          schema:
+            type: string
+            enum: [ide, cli]
+      responses:
+        "200":
+          description: User agent usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAgentUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Agent feature not available in license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureNotAvailableError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # TEAM REPOSITORIES
+  # ========================================
   /api/team/v1/{teamId}/connections/repositories:
     get:
-      tags:
-      - Repositories
-      - Teams
+      tags: [Repositories, Teams]
       summary: Get team repositories
-      description: Retrieve all repository connections for a team. Requires Admin
-        role.
+      description: Retrieve all repository connections for a team. Requires Admin role.
       operationId: getTeamRepositories
       parameters:
-      - $ref: '#/components/parameters/TeamId'
+        - $ref: "#/components/parameters/TeamId"
       responses:
-        '200':
+        "200":
           description: List of repository connections
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/RepositoryConnection'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                  $ref: "#/components/schemas/RepositoryConnection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     post:
-      tags:
-      - Repositories
-      - Teams
+      tags: [Repositories, Teams]
       summary: Add team repository
-      description: 'Add a new repository connection to a team. Requires Admin role.
-
+      description: |
+        Add a new repository connection to a team. Requires Admin role.
         Git repositories can optionally include authentication.
-
         Perforce repositories require authentication.
-
-        '
       operationId: addTeamRepository
       parameters:
-      - $ref: '#/components/parameters/TeamId'
+        - $ref: "#/components/parameters/TeamId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddRepositoryRequest'
+              $ref: "#/components/schemas/AddRepositoryRequest"
       responses:
-        '200':
+        "200":
           description: Repository connection added
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RepositoryConnection'
-        '201':
+                $ref: "#/components/schemas/RepositoryConnection"
+        "201":
           description: Repository connection created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RepositoryConnection'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
+                $ref: "#/components/schemas/RepositoryConnection"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
           description: Repository connection already exists
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/team/v1/{teamId}/connections/repositories/{repositoryLink}:
     put:
-      tags:
-      - Repositories
-      - Teams
+      tags: [Repositories, Teams]
       summary: Edit team repository
-      description: 'Update an existing repository connection. Requires Admin role.
-
+      description: |
+        Update an existing repository connection. Requires Admin role.
         All fields are optional (partial update).
-
-        '
       operationId: editTeamRepository
       parameters:
-      - $ref: '#/components/parameters/TeamId'
-      - $ref: '#/components/parameters/RepositoryLink'
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/RepositoryLink"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EditRepositoryRequest'
+              $ref: "#/components/schemas/EditRepositoryRequest"
       responses:
-        '200':
+        "200":
           description: Repository connection updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RepositoryConnection'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/RepositoryConnection"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     delete:
-      tags:
-      - Repositories
-      - Teams
+      tags: [Repositories, Teams]
       summary: Delete team repository
       description: Remove a repository connection from a team. Requires Admin role.
       operationId: deleteTeamRepository
       parameters:
-      - $ref: '#/components/parameters/TeamId'
-      - $ref: '#/components/parameters/RepositoryLink'
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/RepositoryLink"
       responses:
-        '200':
+        "200":
           description: Repository connection deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessMessage'
-        '204':
+                $ref: "#/components/schemas/SuccessMessage"
+        "204":
           description: Repository connection deleted (no content)
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # USERS
+  # ========================================
   /api/user/v1/{userId}:
     get:
+      tags: [Users]
       summary: Get user info
-      operationId: getUserV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      description: 'Get user details including allowed teams and primary team.
-
-
-        Auth:
-
-        - Admin
-
-        '
+      description: |
+        Get user details including allowed teams and primary team.
+        Requires Admin role.
+      operationId: getUser
       parameters:
-      - name: userId
-        in: path
-        required: true
-        description: User UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/UserId"
       responses:
-        '200':
-          description: User info
+        "200":
+          description: User information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetUserResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: User not found
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/GetUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     patch:
+      tags: [Users]
       summary: Update user properties
-      operationId: updateUserV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      description: 'Update user properties such as role, active status, and team assignment.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager (with role hierarchy checks)
-
-
-        Notes:
-
-        - Cannot modify self.
-
-        - Cannot modify instance admins or anonymized users.
-
-        '
+      description: |
+        Update user role, active status, or team assignment.
+        Requires Admin or Manager role (with role hierarchy checks).
+        Cannot modify self, instance admins, or anonymized users.
+      operationId: updateUser
       parameters:
-      - name: userId
-        in: path
-        required: true
-        description: User UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/UserId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
+              $ref: "#/components/schemas/UpdateUserRequest"
       responses:
-        '200':
+        "200":
           description: User updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericSuccessResponse'
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions or role hierarchy violation
-        '404':
-          description: User not found
-        '409':
-          description: Conflict (e.g., invalid state)
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Conflict - invalid user state
+        "422":
+          description: Insufficient permissions for role operation
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/user/v1/by-email/{email}:
     get:
+      tags: [Users]
       summary: Get user by email
-      operationId: getUserByEmailV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      description: 'Look up a user by email address.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-
-        Returns 404 if the user is not found or belongs to a different organization.
-
-        '
+      description: |
+        Look up a user by email address.
+        Requires Admin or Manager role.
+        Returns 404 if user not found or belongs to different organization.
+      operationId: getUserByEmail
       parameters:
-      - name: email
-        in: path
-        required: true
-        description: URL-encoded email address
-        schema:
-          type: string
+        - name: email
+          in: path
+          required: true
+          description: URL-encoded email address
+          schema:
+            type: string
+            format: email
       responses:
-        '200':
+        "200":
           description: User found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserLookup'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: User not found or belongs to a different org
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/UserLookup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/user/v1/{userId}/allowed-teams:
     get:
+      tags: [Users, Teams]
       summary: List user's allowed teams
-      operationId: listAllowedTeamsV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      - AllowedTeams
-      description: 'List teams a user is allowed to access.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-        '
+      description: |
+        List teams a user is allowed to access.
+        Requires Admin or Manager role.
+      operationId: listAllowedTeams
       parameters:
-      - name: userId
-        in: path
-        required: true
-        description: User UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/UserId"
       responses:
-        '200':
+        "200":
           description: List of allowed teams
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Team'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: User not found
-        '500':
-          description: Server error
+                  $ref: "#/components/schemas/Team"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     patch:
-      summary: Add teams to user's allowed list
-      operationId: addAllowedTeamsV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      - AllowedTeams
-      description: 'Add teams to a user''s allowed-teams list.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-
-        Notes:
-
-        - Idempotent: adding an already-allowed team is a no-op.
-
-        '
+      tags: [Users, Teams]
+      summary: Add allowed teams to user
+      description: |
+        Add teams to a user's allowed-teams list.
+        Requires Admin or Manager role.
+        Idempotent operation.
+      operationId: addAllowedTeams
       parameters:
-      - name: userId
-        in: path
-        required: true
-        description: User UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/UserId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AllowedTeamsRequest'
+              $ref: "#/components/schemas/AllowedTeamsRequest"
       responses:
-        '200':
+        "200":
           description: Teams added to allowed list
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: User or team not found
-        '500':
-          description: Server error
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     delete:
-      summary: Remove teams from user's allowed list
-      operationId: removeAllowedTeamsV1
-      security:
-      - bearerAuth: []
-      tags:
-      - User
-      - AllowedTeams
-      description: 'Remove teams from a user''s allowed-teams list.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-        '
+      tags: [Users, Teams]
+      summary: Remove allowed teams from user
+      description: |
+        Remove teams from a user's allowed-teams list.
+        Requires Admin or Manager role.
+      operationId: removeAllowedTeams
       parameters:
-      - name: userId
-        in: path
-        required: true
-        description: User UUID
-        schema:
-          type: string
-          format: uuid
+        - $ref: "#/components/parameters/UserId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AllowedTeamsRequest'
+              $ref: "#/components/schemas/AllowedTeamsRequest"
       responses:
-        '200':
+        "200":
           description: Teams removed from allowed list
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: User or team not found
-        '500':
-          description: Server error
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/user/{userId}:
     get:
-      tags:
-      - Users
+      tags: [Users]
       summary: Get user info (alternate)
       description: User-level info (alternate path)
       operationId: getUserInfo
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
-        '200':
+        "200":
           description: User information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserInfoResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /api/v1/user/usage:
-    get:
-      tags:
-      - Usage Metrics
-      - Users
-      summary: Get user usage
-      description: Get user-level usage metrics over a time range
-      operationId: getUserUsage
-      parameters:
-      - name: organizationId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: userId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/from'
-      - $ref: '#/components/parameters/to'
-      - $ref: '#/components/parameters/granularity'
-      responses:
-        '200':
-          description: User usage data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserUsageResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/UserInfoResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # INVITATIONS
+  # ========================================
   /api/invitation/v1:
     post:
-      summary: Invite a user to a team
-      operationId: createInvitationV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Invitation
-      description: 'Invite a user by email to a team with a role.
+      tags: [Invitations]
+      summary: Invite user to team
+      description: |
+        Invite a user by email to a team with a role.
+        Requires Admin or Manager role (with role hierarchy checks).
 
-
-        Auth:
-
-        - Admin
-
-        - Manager (with role hierarchy checks)
-
-
-        Behavior:
-
-        - If the user does not exist, creates an invitation.
-
-        - If the user exists, adds them to the team.
-
-
-        Status codes:
-
-        - 201 when a new invitation is created.
-
-        - 200 when an existing user is added to the team.
-
-        '
+        Returns 201 for new invitation, 200 if user already exists.
+      operationId: createInvitation
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateInvitationRequest'
+              $ref: "#/components/schemas/CreateInvitationRequest"
       responses:
-        '200':
+        "200":
           description: Existing user added to team
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateInvitationResponseExisting'
-        '201':
+                $ref: "#/components/schemas/CreateInvitationExistingResponse"
+        "201":
           description: Invitation created for new user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateInvitationResponseNew'
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions or role hierarchy violation
-        '404':
-          description: Team not found
-        '409':
-          description: Conflict (e.g., invitation already exists)
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/CreateInvitationNewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Invitation already exists
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     get:
+      tags: [Invitations]
       summary: List invitations
-      operationId: listInvitationsV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Invitation
-      description: 'List pending invitations, optionally filtered by team.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager
-
-        '
+      description: |
+        List pending invitations, optionally filtered by team.
+        Requires Admin or Manager role.
+      operationId: listInvitations
       parameters:
-      - name: offset
-        in: query
-        required: true
-        schema:
-          type: integer
-          minimum: 0
-        description: Offset for pagination
-      - name: limit
-        in: query
-        required: true
-        schema:
-          type: integer
-          minimum: 1
-        description: Page size
-      - name: teamId
-        in: query
-        required: false
-        schema:
-          type: string
-          format: uuid
-        description: Filter invitations by team ID
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: teamId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter invitations by team ID
       responses:
-        '200':
-          description: List of invitations
+        "200":
+          description: Paginated invitations
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListInvitationsResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/ListInvitationsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
     delete:
+      tags: [Invitations]
       summary: Revoke invitations
-      operationId: revokeInvitationsV1
-      security:
-      - bearerAuth: []
-      tags:
-      - Invitation
-      description: 'Revoke (soft-delete) invitations by IDs.
-
-
-        Auth:
-
-        - Admin
-
-        - Manager (with role hierarchy checks)
-
-        '
+      description: |
+        Revoke (soft-delete) invitations by IDs.
+        Requires Admin or Manager role (with role hierarchy checks).
+      operationId: revokeInvitations
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RevokeInvitationsRequest'
+              $ref: "#/components/schemas/RevokeInvitationsRequest"
       responses:
-        '200':
+        "200":
           description: Invitations revoked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RevokeInvitationsResponse'
-        '400':
-          description: Invalid request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Insufficient permissions
-        '404':
-          description: Invitations not found
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/RevokeInvitationsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # LICENSE
+  # ========================================
   /api/v1/license:
     get:
-      tags:
-      - License
+      tags: [License]
       summary: Get license info
       description: Get license information including seats, features, and settings
       operationId: getLicense
       responses:
-        '200':
+        "200":
           description: License information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LicenseResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/LicenseResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/instance/permissions:
     get:
-      tags:
-      - Organization
+      tags: [Organization]
       summary: Get account permissions
       description: Get list of users with a specific role (e.g., account admins)
       operationId: getInstancePermissions
       parameters:
-      - name: role
-        in: query
-        required: true
-        schema:
-          type: string
-        example: Admin
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Admin
       responses:
-        '200':
+        "200":
           description: Users with specified role
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PermissionUser'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                  $ref: "#/components/schemas/PermissionUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+# ========================================
+# COMPONENTS
+# ========================================
 components:
   securitySchemes:
     bearerAuth:
@@ -1299,6 +1310,7 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT Bearer token for authentication
+
   parameters:
     TeamId:
       name: teamId
@@ -1308,6 +1320,7 @@ components:
       schema:
         type: string
         format: uuid
+
     UserId:
       name: userId
       in: path
@@ -1316,6 +1329,7 @@ components:
       schema:
         type: string
         format: uuid
+
     RepositoryLink:
       name: repositoryLink
       in: path
@@ -1323,6 +1337,7 @@ components:
       description: The full repository link/URL
       schema:
         type: string
+
     from:
       name: from
       in: query
@@ -1331,7 +1346,8 @@ components:
       schema:
         type: string
         format: date-time
-      example: '2025-03-23T00:00:00Z'
+      example: "2025-03-23T00:00:00Z"
+
     to:
       name: to
       in: query
@@ -1340,7 +1356,8 @@ components:
       schema:
         type: string
         format: date-time
-      example: '2026-02-23T00:00:00Z'
+      example: "2026-02-23T00:00:00Z"
+
     granularity:
       name: granularity
       in: query
@@ -1348,53 +1365,56 @@ components:
       description: Aggregation granularity for usage data
       schema:
         type: string
-        enum:
-        - all
-        - day
-        - week
-        - month
-        - daily
-        - weekly
-        - monthly
+        enum: [all, day, week, month, daily, weekly, monthly]
       example: all
+
   responses:
     BadRequest:
       description: Bad Request - Invalid or missing parameters
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
     Unauthorized:
       description: Unauthorized - Invalid or missing token
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
     Forbidden:
       description: Forbidden - Insufficient permissions
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
     NotFound:
       description: Not Found - Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
     TooManyRequests:
       description: Too Many Requests - Rate limit exceeded
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
     InternalServerError:
       description: Internal Server Error - Unexpected server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
+
   schemas:
+    # ========================================
+    # COMMON
+    # ========================================
     Error:
       type: object
       properties:
@@ -1414,28 +1434,30 @@ components:
         details:
           type: object
           additionalProperties: true
+
     SuccessMessage:
       type: object
       required:
-      - success
-      - message
+        - success
+        - message
       properties:
         success:
           type: boolean
         message:
           type: string
+
     Role:
       type: string
-      enum:
-      - Member
-      - TeamLead
-      - Manager
-      - Admin
+      enum: [Member, TeamLead, Manager, Admin]
+
+    # ========================================
+    # ORGANIZATION
+    # ========================================
     Organization:
       type: object
       required:
-      - id
-      - name
+        - id
+        - name
       properties:
         id:
           type: string
@@ -1457,19 +1479,28 @@ components:
             type: string
         planType:
           type: string
+
     PermissionUser:
       type: object
       required:
-      - username
-      - organizationId
+        - username
+        - organizationId
       properties:
         username:
           type: string
         organizationId:
           type: string
           format: uuid
+
+    # ========================================
+    # TEAMS
+    # ========================================
     Team:
       type: object
+      required:
+        - id
+        - name
+        - organizationId
       properties:
         id:
           type: string
@@ -1483,41 +1514,46 @@ components:
           type: string
           nullable: true
           description: Optional ID of synced external group
-      required:
-      - id
-      - name
-      - organizationId
+        usersCount:
+          type: integer
+          minimum: 0
+        isDefaultTeam:
+          type: boolean
+
     CreateTeamRequest:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
           minLength: 1
-      required:
-      - name
+
     RenameTeamRequest:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
           minLength: 1
-      required:
-      - name
+
     TeamListResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Team'
+            $ref: "#/components/schemas/Team"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
+
     TeamUtilization:
       type: object
       required:
-      - registered
-      - deactivated
-      - invited
+        - registered
+        - deactivated
+        - invited
       properties:
         registered:
           type: integer
@@ -1528,14 +1564,18 @@ components:
         invited:
           type: integer
           minimum: 0
+
+    # ========================================
+    # USERS
+    # ========================================
     User:
       type: object
       required:
-      - id
-      - email
-      - role
-      - verified
-      - active
+        - id
+        - email
+        - role
+        - verified
+        - active
       properties:
         id:
           type: string
@@ -1546,18 +1586,18 @@ components:
           type: string
           format: email
         role:
-          $ref: '#/components/schemas/Role'
+          $ref: "#/components/schemas/Role"
         verified:
           type: boolean
         active:
           type: boolean
         team:
-          $ref: '#/components/schemas/Team'
+          $ref: "#/components/schemas/Team"
           nullable: true
         allowedTeams:
           type: array
           items:
-            $ref: '#/components/schemas/Team'
+            $ref: "#/components/schemas/Team"
         deactivatedAt:
           type: string
           format: date-time
@@ -1565,12 +1605,18 @@ components:
         updatedAt:
           type: string
           format: date-time
+
     GetUserResponse:
       type: object
+      required:
+        - user
       properties:
         user:
           type: object
-          description: Primary user info including allowedTeams
+          required:
+            - user_id
+            - email
+            - role
           properties:
             user_id:
               type: string
@@ -1579,33 +1625,31 @@ components:
               type: string
               format: email
             role:
-              $ref: '#/components/schemas/Role'
+              $ref: "#/components/schemas/Role"
             active:
               type: boolean
             allowedTeams:
               type: array
               items:
-                $ref: '#/components/schemas/Team'
-          required:
-          - user_id
-          - email
-          - role
+                $ref: "#/components/schemas/Team"
         teams:
           type: object
-          description: Primary team information
           properties:
             team_id:
               type: string
+              format: uuid
               nullable: true
             team_name:
               type: string
               nullable: true
-      required:
-      - user
-      - teams
+
     UserLookup:
       type: object
-      description: User object returned by /api/user/v1/by-email
+      required:
+        - id
+        - email
+        - role
+        - verified
       properties:
         id:
           type: string
@@ -1616,39 +1660,32 @@ components:
           type: string
           format: email
         role:
-          $ref: '#/components/schemas/Role'
+          $ref: "#/components/schemas/Role"
         verified:
           type: boolean
         active:
           type: boolean
         team:
-          $ref: '#/components/schemas/Team'
+          $ref: "#/components/schemas/Team"
           nullable: true
         allowedTeams:
           type: array
           items:
-            $ref: '#/components/schemas/Team'
-      required:
-      - id
-      - email
-      - role
-      - verified
+            $ref: "#/components/schemas/Team"
+
     UpdateUserRequest:
       type: object
-      description: 'Fields to update on the user. All are optional; only provided
-        fields will be changed.
-
-        '
+      description: All fields are optional; only provided fields will be updated
       properties:
         role:
-          $ref: '#/components/schemas/Role'
+          $ref: "#/components/schemas/Role"
         active:
           type: boolean
         teamId:
           type: string
           format: uuid
           nullable: true
-      additionalProperties: false
+
     UserInfoResponse:
       type: object
       properties:
@@ -1680,17 +1717,21 @@ components:
               format: uuid
             team_name:
               type: string
+
     PaginatedUsersResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: "#/components/schemas/User"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
+
     AllowedTeamsRequest:
       type: object
+      required:
+        - teamIds
       properties:
         teamIds:
           type: array
@@ -1698,10 +1739,16 @@ components:
           items:
             type: string
             format: uuid
-      required:
-      - teamIds
+
+    # ========================================
+    # INVITATIONS
+    # ========================================
     CreateInvitationRequest:
       type: object
+      required:
+        - email
+        - teamId
+        - role
       properties:
         email:
           type: string
@@ -1710,18 +1757,15 @@ components:
           type: string
           format: uuid
         role:
-          $ref: '#/components/schemas/Role'
-      required:
-      - email
-      - teamId
-      - role
+          $ref: "#/components/schemas/Role"
+
     CreateInvitationNewResponse:
       type: object
       required:
-      - success
-      - message
-      - userExists
-      - invitationId
+        - success
+        - message
+        - userExists
+        - invitationId
       properties:
         success:
           type: boolean
@@ -1732,13 +1776,14 @@ components:
         invitationId:
           type: string
           format: uuid
+
     CreateInvitationExistingResponse:
       type: object
       required:
-      - success
-      - message
-      - userExists
-      - userId
+        - success
+        - message
+        - userExists
+        - userId
       properties:
         success:
           type: boolean
@@ -1749,9 +1794,15 @@ components:
         userId:
           type: string
           format: uuid
+
     Invitation:
       type: object
-      description: Invitation entity
+      required:
+        - id
+        - email
+        - teamId
+        - role
+        - createdAt
       properties:
         id:
           type: string
@@ -1763,7 +1814,7 @@ components:
           type: string
           format: uuid
         role:
-          $ref: '#/components/schemas/Role'
+          $ref: "#/components/schemas/Role"
         createdAt:
           type: string
           format: date-time
@@ -1775,41 +1826,25 @@ components:
           type: string
           format: date-time
           nullable: true
-      required:
-      - id
-      - email
-      - teamId
-      - role
-      - createdAt
+
     ListInvitationsResponse:
       type: object
+      required:
+        - data
+        - meta
       properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Invitation'
+            $ref: "#/components/schemas/Invitation"
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-            total:
-              type: integer
-            next:
-              type: integer
-              nullable: true
-              description: Offset for the next page, if any
-          required:
-          - count
-          - total
-      required:
-      - data
-      - meta
+          $ref: "#/components/schemas/InvitationPaginationMeta"
+
     InvitationPaginationMeta:
       type: object
       required:
-      - count
-      - total
+        - count
+        - total
       properties:
         count:
           type: integer
@@ -1819,8 +1854,11 @@ components:
           type: integer
           nullable: true
           description: Offset for next page, if any
+
     RevokeInvitationsRequest:
       type: object
+      required:
+        - invitationIds
       properties:
         invitationIds:
           type: array
@@ -1828,35 +1866,34 @@ components:
           items:
             type: string
             format: uuid
-      required:
-      - invitationIds
+
     RevokeInvitationsResponse:
       type: object
+      required:
+        - revoked
       properties:
         revoked:
           type: integer
           description: Number of invitations revoked
-      required:
-      - revoked
+
+    # ========================================
+    # REPOSITORIES
+    # ========================================
     RepositoryConnection:
       type: object
       required:
-      - repository_link
-      - repo_type
+        - repository_link
+        - repo_type
       properties:
         repository_link:
           type: string
           description: The URL or path to the repository
         repo_type:
           type: string
-          enum:
-          - git
-          - perforce
+          enum: [git, perforce]
         authentication_method:
           type: string
-          enum:
-          - ssh
-          - https
+          enum: [ssh, https]
           description: Authentication method (Git only)
         authentication_credentials_name:
           type: string
@@ -1864,59 +1901,57 @@ components:
         view_source_link_pattern:
           type: string
           description: Template pattern for source code links. Use {path} and {line}.
+
     AddRepositoryRequest:
       type: object
       required:
-      - repository_link
-      - repo_type
+        - repository_link
+        - repo_type
       properties:
         repository_link:
           type: string
         repo_type:
           type: string
-          enum:
-          - git
-          - perforce
+          enum: [git, perforce]
         authentication_method:
           type: string
-          enum:
-          - ssh
-          - https
+          enum: [ssh, https]
           description: Optional for Git, not applicable for Perforce
         authentication_credentials_name:
           type: string
           description: Optional for Git, required for Perforce
         view_source_link_pattern:
           type: string
+
     EditRepositoryRequest:
       type: object
       description: All fields optional for partial update
       properties:
         repo_type:
           type: string
-          enum:
-          - git
-          - perforce
+          enum: [git, perforce]
         authentication_method:
           type: string
-          enum:
-          - ssh
-          - https
+          enum: [ssh, https]
         authentication_credentials_name:
           type: string
         view_source_link_pattern:
           type: string
+
+    # ========================================
+    # AUDIT LOGS
+    # ========================================
     AuditLogPage:
       type: object
       required:
-      - items
-      - limit
-      - offset
+        - items
+        - limit
+        - offset
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/AuditLogEvent'
+            $ref: "#/components/schemas/AuditLogEvent"
         total:
           type: integer
           description: Total matching items (may be approximate)
@@ -1924,12 +1959,13 @@ components:
           type: integer
         offset:
           type: integer
+
     AuditLogEvent:
       type: object
       required:
-      - id
-      - timestamp
-      - eventType
+        - id
+        - timestamp
+        - eventType
       properties:
         id:
           type: string
@@ -1942,30 +1978,28 @@ components:
           type: string
           description: Machine-readable event type
         actor:
-          $ref: '#/components/schemas/AuditLogActor'
+          $ref: "#/components/schemas/AuditLogActor"
         resource:
-          $ref: '#/components/schemas/AuditLogResource'
+          $ref: "#/components/schemas/AuditLogResource"
         metadata:
           type: object
           additionalProperties: true
           description: Additional event data
         request:
-          $ref: '#/components/schemas/AuditLogRequestContext'
+          $ref: "#/components/schemas/AuditLogRequestContext"
+
     AuditLogActor:
       type: object
       required:
-      - id
-      - type
+        - id
+        - type
       properties:
         id:
           type: string
           description: Actor identifier
         type:
           type: string
-          enum:
-          - user
-          - system
-          - api_key
+          enum: [user, system, api_key]
         email:
           type: string
           format: email
@@ -1973,11 +2007,12 @@ components:
         displayName:
           type: string
           nullable: true
+
     AuditLogResource:
       type: object
       required:
-      - id
-      - type
+        - id
+        - type
       properties:
         id:
           type: string
@@ -1986,6 +2021,7 @@ components:
         name:
           type: string
           nullable: true
+
     AuditLogRequestContext:
       type: object
       properties:
@@ -1999,11 +2035,16 @@ components:
         requestId:
           type: string
           nullable: true
+
+    # ========================================
+    # LICENSE
+    # ========================================
     LicenseResponse:
       type: object
       properties:
         license:
-          $ref: '#/components/schemas/License'
+          $ref: "#/components/schemas/License"
+
     License:
       type: object
       properties:
@@ -2030,19 +2071,21 @@ components:
         settings:
           type: object
           additionalProperties: true
+
     AccountUtilizations:
       type: array
       items:
-        $ref: '#/components/schemas/UtilizationMonth'
+        $ref: "#/components/schemas/UtilizationMonth"
+
     UtilizationMonth:
       type: object
       required:
-      - year
-      - month
-      - registered
-      - deactivated
-      - active
-      - pending
+        - year
+        - month
+        - registered
+        - deactivated
+        - active
+        - pending
       properties:
         year:
           type: integer
@@ -2064,13 +2107,17 @@ components:
         pending:
           type: integer
           minimum: 0
+
+    # ========================================
+    # USAGE METRICS
+    # ========================================
     OrganizationUsageResponse:
       type: object
       required:
-      - organizationId
-      - from
-      - to
-      - usage
+        - organizationId
+        - from
+        - to
+        - usage
       properties:
         organizationId:
           type: string
@@ -2082,15 +2129,16 @@ components:
           type: string
           format: date-time
         usage:
-          $ref: '#/components/schemas/UsageEnvelope'
+          $ref: "#/components/schemas/UsageEnvelope"
+
     TeamUsageResponse:
       type: object
       required:
-      - organizationId
-      - teamId
-      - from
-      - to
-      - usage
+        - organizationId
+        - teamId
+        - from
+        - to
+        - usage
       properties:
         organizationId:
           type: string
@@ -2105,15 +2153,16 @@ components:
           type: string
           format: date-time
         usage:
-          $ref: '#/components/schemas/UsageEnvelope'
+          $ref: "#/components/schemas/UsageEnvelope"
+
     UserUsageResponse:
       type: object
       required:
-      - organizationId
-      - userId
-      - from
-      - to
-      - usage
+        - organizationId
+        - userId
+        - from
+        - to
+        - usage
       properties:
         organizationId:
           type: string
@@ -2128,33 +2177,28 @@ components:
           type: string
           format: date-time
         usage:
-          $ref: '#/components/schemas/UsageEnvelope'
+          $ref: "#/components/schemas/UsageEnvelope"
+
     UsageEnvelope:
       type: object
       required:
-      - granularity
-      - data
+        - granularity
+        - data
       properties:
         granularity:
           type: string
-          enum:
-          - all
-          - day
-          - week
-          - month
-          - daily
-          - weekly
-          - monthly
+          enum: [all, day, week, month, daily, weekly, monthly]
         data:
           type: array
           items:
-            $ref: '#/components/schemas/UsageBucket'
+            $ref: "#/components/schemas/UsageBucket"
+
     UsageBucket:
       type: object
       required:
-      - from
-      - to
-      - activeUsers
+        - from
+        - to
+        - activeUsers
       properties:
         from:
           type: string
@@ -2170,13 +2214,14 @@ components:
           type: number
           format: float
         instruct:
-          $ref: '#/components/schemas/InstructUsage'
+          $ref: "#/components/schemas/InstructUsage"
         codeCompletions:
-          $ref: '#/components/schemas/CodeCompletionsUsage'
+          $ref: "#/components/schemas/CodeCompletionsUsage"
         chat:
-          $ref: '#/components/schemas/ChatUsage'
+          $ref: "#/components/schemas/ChatUsage"
         agent:
-          $ref: '#/components/schemas/AgentUsage'
+          $ref: "#/components/schemas/AgentUsage"
+
     InstructUsage:
       type: object
       properties:
@@ -2184,6 +2229,7 @@ components:
           type: integer
           minimum: 0
           description: Number of accepted instruct interactions
+
     CodeCompletionsUsage:
       type: object
       properties:
@@ -2205,6 +2251,7 @@ components:
         automationFactor:
           type: number
           format: float
+
     ChatUsage:
       type: object
       properties:
@@ -2226,6 +2273,7 @@ components:
         chatConsumptionRate:
           type: number
           format: float
+
     AgentUsage:
       type: object
       properties:
@@ -2247,6 +2295,236 @@ components:
         linesRemovedAccepted:
           type: integer
           minimum: 0
+
+    # ========================================
+    # AGENT USAGE SCHEMAS
+    # ========================================
+    OrganizationAgentUsageResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          example: org_abc123
+        from:
+          type: string
+          format: date-time
+          example: '2026-03-01T00:00:00.000Z'
+        to:
+          type: string
+          format: date-time
+          example: '2026-03-31T00:00:00.000Z'
+        usage:
+          $ref: '#/components/schemas/AgentUsageEnvelope'
+      required:
+        - organizationId
+        - from
+        - to
+        - usage
+
+    TeamAgentUsageResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          example: org_abc123
+        teamId:
+          type: string
+          example: team_123
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        usage:
+          $ref: '#/components/schemas/AgentUsageEnvelope'
+      required:
+        - organizationId
+        - teamId
+        - from
+        - to
+        - usage
+
+    UserAgentUsageResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          example: org_abc123
+        userId:
+          type: string
+          example: user_123
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        usage:
+          $ref: '#/components/schemas/AgentUsageEnvelope'
+      required:
+        - organizationId
+        - userId
+        - from
+        - to
+        - usage
+
+    AgentUsageEnvelope:
+      type: object
+      properties:
+        granularity:
+          type: string
+          example: all
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentUsageDataPoint'
+      required:
+        - granularity
+        - data
+
+    AgentUsageDataPoint:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        activeUsers:
+          type: integer
+          example: 60
+        totalTokensConsumed:
+          type: integer
+          example: 2500000
+        totalInputTokens:
+          type: integer
+          example: 2000000
+        totalOutputTokens:
+          type: integer
+          example: 500000
+        totalCost:
+          type: number
+          format: float
+          example: 45.5
+        modelBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelBreakdownEntry'
+        agentTypeBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentTypeBreakdownEntry'
+      required:
+        - from
+        - to
+        - activeUsers
+        - totalTokensConsumed
+        - totalInputTokens
+        - totalOutputTokens
+        - totalCost
+        - modelBreakdown
+        - agentTypeBreakdown
+
+    ModelBreakdownEntry:
+      type: object
+      properties:
+        model:
+          type: string
+          example: claude-sonnet-4-20250514
+        tokensConsumed:
+          type: integer
+          example: 1800000
+        inputTokens:
+          type: integer
+          example: 1500000
+        outputTokens:
+          type: integer
+          example: 300000
+        cost:
+          type: number
+          format: float
+          example: 35.0
+      required:
+        - model
+        - tokensConsumed
+        - inputTokens
+        - outputTokens
+        - cost
+
+    AgentTypeBreakdownEntry:
+      type: object
+      properties:
+        agentType:
+          type: string
+          description: Specific agent type identifier (e.g., ide-vscode, cli).
+          example: ide-vscode
+        activeUsers:
+          type: integer
+          example: 50
+        interactions:
+          type: integer
+          example: 700
+        linesAdded:
+          type: integer
+          example: 10000
+        linesAddedAccepted:
+          type: integer
+          example: 8000
+        linesRemoved:
+          type: integer
+          example: 2000
+        linesRemovedAccepted:
+          type: integer
+          example: 1700
+        tokensConsumed:
+          type: integer
+          example: 1500000
+        inputTokens:
+          type: integer
+          example: 1200000
+        outputTokens:
+          type: integer
+          example: 300000
+        cost:
+          type: number
+          format: float
+          example: 28.0
+        modelBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelBreakdownEntry'
+      required:
+        - agentType
+        - activeUsers
+        - interactions
+        - linesAdded
+        - linesAddedAccepted
+        - linesRemoved
+        - linesRemovedAccepted
+        - tokensConsumed
+        - inputTokens
+        - outputTokens
+        - cost
+        - modelBreakdown
+
+    FeatureNotAvailableError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: FEATURE_NOT_AVAILABLE
+        message:
+          type: string
+          example: The Agent feature is not included in your account's license.
+      required:
+        - error
+        - message
+
+    # ========================================
+    # PAGINATION
+    # ========================================
     PaginationMeta:
       type: object
       properties:
@@ -2266,52 +2544,3 @@ components:
               type: integer
             offset:
               type: integer
-    CreateInvitationResponseNew:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-        userExists:
-          type: boolean
-          example: false
-        invitationId:
-          type: string
-          format: uuid
-      required:
-      - success
-      - message
-      - userExists
-      - invitationId
-    GenericSuccessResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-      required:
-      - success
-      - message
-    CreateInvitationResponseExisting:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-        userExists:
-          type: boolean
-          example: true
-        userId:
-          type: string
-          format: uuid
-      required:
-      - success
-      - message
-      - userExists
-      - userId
