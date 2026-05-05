@@ -613,16 +613,6 @@ paths:
           required: false
           schema:
             type: string
-        - name: agentType
-          in: query
-          description: >
-            Optional filter by agent type. When specified, the top-level
-            usage fields in each data entry reflect only that agent type.
-            The `agentTypeBreakdown` array still includes all agent types.
-          required: false
-          schema:
-            type: string
-            enum: [ide, cli]
       responses:
         "200":
           description: Organization agent usage
@@ -681,16 +671,6 @@ paths:
           required: false
           schema:
             type: string
-        - name: agentType
-          in: query
-          description: >
-            Optional filter by agent type. When specified, the top-level
-            usage fields in each data entry reflect only that agent type.
-            The `agentTypeBreakdown` array still includes all agent types.
-          required: false
-          schema:
-            type: string
-            enum: [ide, cli]
       responses:
         "200":
           description: Team agent usage
@@ -749,16 +729,6 @@ paths:
           required: false
           schema:
             type: string
-        - name: agentType
-          in: query
-          description: >
-            Optional filter by agent type. When specified, the top-level
-            usage fields in each data entry reflect only that agent type.
-            The `agentTypeBreakdown` array still includes all agent types.
-          required: false
-          schema:
-            type: string
-            enum: [ide, cli]
       responses:
         "200":
           description: User agent usage
@@ -2412,10 +2382,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ModelBreakdownEntry'
-        agentTypeBreakdown:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentTypeBreakdownEntry'
       required:
         - from
         - to
@@ -2425,7 +2391,6 @@ components:
         - totalOutputTokens
         - totalCost
         - modelBreakdown
-        - agentTypeBreakdown
 
     ModelBreakdownEntry:
       type: object
@@ -2452,63 +2417,6 @@ components:
         - inputTokens
         - outputTokens
         - cost
-
-    AgentTypeBreakdownEntry:
-      type: object
-      properties:
-        agentType:
-          type: string
-          description: Specific agent type identifier (e.g., ide-vscode, cli).
-          example: ide-vscode
-        activeUsers:
-          type: integer
-          example: 50
-        interactions:
-          type: integer
-          example: 700
-        linesAdded:
-          type: integer
-          example: 10000
-        linesAddedAccepted:
-          type: integer
-          example: 8000
-        linesRemoved:
-          type: integer
-          example: 2000
-        linesRemovedAccepted:
-          type: integer
-          example: 1700
-        tokensConsumed:
-          type: integer
-          example: 1500000
-        inputTokens:
-          type: integer
-          example: 1200000
-        outputTokens:
-          type: integer
-          example: 300000
-        cost:
-          type: number
-          format: float
-          example: 28.0
-        modelBreakdown:
-          type: array
-          items:
-            $ref: '#/components/schemas/ModelBreakdownEntry'
-      required:
-        - agentType
-        - activeUsers
-        - interactions
-        - linesAdded
-        - linesAddedAccepted
-        - linesRemoved
-        - linesRemovedAccepted
-        - tokensConsumed
-        - inputTokens
-        - outputTokens
-        - cost
-        - modelBreakdown
-
     FeatureNotAvailableError:
       type: object
       properties:
