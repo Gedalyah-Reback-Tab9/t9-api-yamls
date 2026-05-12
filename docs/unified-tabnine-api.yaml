@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Tabnine Platform API
-  version: "6.1.0"
+  version: "6.2.0"
   description: |
     Unified API specification for the Tabnine platform, including:
     - Organization management and usage metrics
@@ -158,8 +158,10 @@ paths:
   /api/v1/organization/usage:
     get:
       tags: [Usage Metrics, Organization]
-      summary: Get organization usage
+      summary: Get organization usage (v1)
+      deprecated: true
       description: |
+        **Deprecated in 6.2.** Use `/api/v2/organization/usage` instead.
         Returns aggregated usage metrics for an organization over a given time range.
         Includes per-tool metrics for agent, chat, code completions, and instruct.
       operationId: getOrganizationUsage
@@ -499,8 +501,11 @@ paths:
   /api/v1/team/usage:
     get:
       tags: [Usage Metrics, Teams]
-      summary: Get team usage
-      description: Get team-level usage metrics over a time range
+      summary: Get team usage (v1)
+      deprecated: true
+      description: |
+        **Deprecated in 6.2.** Use `/api/v2/team/usage` instead.
+        Get team-level usage metrics over a time range.
       operationId: getTeamUsage
       parameters:
         - name: organizationId
@@ -539,8 +544,11 @@ paths:
   /api/v1/user/usage:
     get:
       tags: [Usage Metrics, Users]
-      summary: Get user usage
-      description: Get user-level usage metrics over a time range
+      summary: Get user usage (v1)
+      deprecated: true
+      description: |
+        **Deprecated in 6.2.** Use `/api/v2/user/usage` instead.
+        Get user-level usage metrics over a time range.
       operationId: getUserUsage
       parameters:
         - name: organizationId
@@ -746,6 +754,129 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FeatureNotAvailableError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ========================================
+  # V2 USAGE METRICS (added in 6.2)
+  # ========================================
+  /api/v2/organization/usage:
+    get:
+      tags: [Usage Metrics, Organization]
+      summary: Get organization usage (v2)
+      description: |
+        Returns aggregated usage metrics for an organization with split
+        chat/agent metrics and per-model breakdown. Replaces v1 usage endpoint.
+
+        **New in 6.2:**
+        - Chat and agent metrics are split (separate `messages`, `linesAdded`)
+        - Per-model breakdown with token counts (`chat.models`, `agent.models`)
+        - `ides` and `languages` fields on per-user queries
+      operationId: getOrganizationUsageV2
+      parameters:
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
+      responses:
+        "200":
+          description: Organization usage data (v2 format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2OrganizationUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v2/team/usage:
+    get:
+      tags: [Usage Metrics, Teams]
+      summary: Get team usage (v2)
+      description: |
+        Returns team-level usage metrics with split chat/agent metrics
+        and per-model breakdown. Replaces v1 team usage endpoint.
+      operationId: getTeamUsageV2
+      parameters:
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: teamId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
+      responses:
+        "200":
+          description: Team usage data (v2 format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2TeamUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v2/user/usage:
+    get:
+      tags: [Usage Metrics, Users]
+      summary: Get user usage (v2)
+      description: |
+        Returns per-user usage metrics with split chat/agent metrics,
+        per-model breakdown, and IDE/language information.
+        Replaces v1 user usage endpoint.
+      operationId: getUserUsageV2
+      parameters:
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
+      responses:
+        "200":
+          description: User usage data (v2 format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2UserUsageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2429,6 +2560,191 @@ components:
       required:
         - error
         - message
+
+    # ========================================
+    # V2 USAGE SCHEMAS (added in 6.2)
+    # ========================================
+    V2OrganizationUsageResponse:
+      type: object
+      required: [organizationId, from, to, usage]
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        usage:
+          $ref: "#/components/schemas/V2UsageEnvelope"
+
+    V2TeamUsageResponse:
+      type: object
+      required: [organizationId, teamId, from, to, usage]
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        teamId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        usage:
+          $ref: "#/components/schemas/V2UsageEnvelope"
+
+    V2UserUsageResponse:
+      type: object
+      required: [organizationId, userId, from, to, usage]
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        usage:
+          $ref: "#/components/schemas/V2UsageEnvelope"
+
+    V2UsageEnvelope:
+      type: object
+      required: [granularity, data]
+      properties:
+        granularity:
+          type: string
+          enum: [all, daily, weekly, monthly]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/V2UsageBucket"
+
+    V2UsageBucket:
+      type: object
+      required: [from, to, activeUsers, codeCompletions, chat, agent]
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        activeUsers:
+          type: integer
+          minimum: 0
+        codeCompletions:
+          $ref: "#/components/schemas/V2CodeCompletionsUsage"
+        chat:
+          $ref: "#/components/schemas/V2ChatUsage"
+        agent:
+          $ref: "#/components/schemas/V2AgentUsage"
+        ides:
+          type: string
+          nullable: true
+          description: Comma-separated list of IDEs used (per-user queries only)
+        languages:
+          type: string
+          nullable: true
+          description: Comma-separated list of programming languages (per-user queries only)
+
+    V2CodeCompletionsUsage:
+      type: object
+      properties:
+        activeUsers:
+          type: integer
+          minimum: 0
+        completions:
+          type: integer
+          minimum: 0
+        charsCompleted:
+          type: integer
+          minimum: 0
+        keystrokes:
+          type: integer
+          minimum: 0
+        lines:
+          type: integer
+          minimum: 0
+
+    V2ChatUsage:
+      type: object
+      properties:
+        activeUsers:
+          type: integer
+          minimum: 0
+        messages:
+          type: integer
+          minimum: 0
+          description: Unique chat messages (deduplicated by message ID)
+        linesAdded:
+          type: integer
+          minimum: 0
+          description: Lines of code added via chat
+        models:
+          type: array
+          description: Per-model breakdown of chat usage
+          items:
+            $ref: "#/components/schemas/V2ModelUsage"
+
+    V2AgentUsage:
+      type: object
+      properties:
+        activeUsers:
+          type: integer
+          minimum: 0
+        messages:
+          type: integer
+          minimum: 0
+          description: Unique agent messages (deduplicated by message ID)
+        linesAdded:
+          type: integer
+          minimum: 0
+          description: Lines of code added via agent
+        linesAddedAccepted:
+          type: integer
+          minimum: 0
+        linesRemoved:
+          type: integer
+          minimum: 0
+        linesRemovedAccepted:
+          type: integer
+          minimum: 0
+        models:
+          type: array
+          description: Per-model breakdown of agent usage
+          items:
+            $ref: "#/components/schemas/V2ModelUsage"
+
+    V2ModelUsage:
+      type: object
+      properties:
+        model:
+          type: string
+          format: uuid
+          description: Model UUID (map to display name on client side)
+        messages:
+          type: integer
+          minimum: 0
+        uniqueUsers:
+          type: integer
+          minimum: 0
+        inputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
 
     # ========================================
     # PAGINATION
