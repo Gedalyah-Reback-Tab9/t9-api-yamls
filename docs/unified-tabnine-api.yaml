@@ -158,10 +158,21 @@ paths:
   /api/v1/organization/usage:
     get:
       tags: [Usage Metrics, Organization]
-      summary: Get organization usage (v1)
+      summary: Get organization usage (v1 — Legacy)
       deprecated: true
       description: |
-        **Deprecated in 6.2.** Use `/api/v2/organization/usage` instead.
+        > **⚠️ LEGACY ENDPOINT — DO NOT USE FOR NEW INTEGRATIONS.**
+        >
+        > As of Tabnine 6.2, this endpoint only returns **historical usage
+        > data collected before 6.2** (pre-6.2 chat interactions, useful
+        > interactions, productivity factor, etc.). It does **not** contain
+        > any activity from 6.2 onward and will never be updated with new data.
+        >
+        > **For all current usage data, use
+        > [`/api/v2/organization/usage`](#/Usage%20Metrics/getOrganizationUsageV2).**
+        > The v2 endpoint provides split chat/agent metrics with per-model
+        > breakdowns and is the only source of post-6.2 activity data.
+
         Returns aggregated usage metrics for an organization over a given time range.
         Includes per-tool metrics for agent, chat, code completions, and instruct.
       operationId: getOrganizationUsage
@@ -501,10 +512,21 @@ paths:
   /api/v1/team/usage:
     get:
       tags: [Usage Metrics, Teams]
-      summary: Get team usage (v1)
+      summary: Get team usage (v1 — Legacy)
       deprecated: true
       description: |
-        **Deprecated in 6.2.** Use `/api/v2/team/usage` instead.
+        > **⚠️ LEGACY ENDPOINT — DO NOT USE FOR NEW INTEGRATIONS.**
+        >
+        > As of Tabnine 6.2, this endpoint only returns **historical usage
+        > data collected before 6.2** (pre-6.2 chat interactions, useful
+        > interactions, productivity factor, etc.). It does **not** contain
+        > any activity from 6.2 onward and will never be updated with new data.
+        >
+        > **For all current usage data, use
+        > [`/api/v2/team/usage`](#/Usage%20Metrics/getTeamUsageV2).**
+        > The v2 endpoint provides split chat/agent metrics with per-model
+        > breakdowns and is the only source of post-6.2 activity data.
+
         Get team-level usage metrics over a time range.
       operationId: getTeamUsage
       parameters:
@@ -544,10 +566,21 @@ paths:
   /api/v1/user/usage:
     get:
       tags: [Usage Metrics, Users]
-      summary: Get user usage (v1)
+      summary: Get user usage (v1 — Legacy)
       deprecated: true
       description: |
-        **Deprecated in 6.2.** Use `/api/v2/user/usage` instead.
+        > **⚠️ LEGACY ENDPOINT — DO NOT USE FOR NEW INTEGRATIONS.**
+        >
+        > As of Tabnine 6.2, this endpoint only returns **historical usage
+        > data collected before 6.2** (pre-6.2 chat interactions, useful
+        > interactions, productivity factor, etc.). It does **not** contain
+        > any activity from 6.2 onward and will never be updated with new data.
+        >
+        > **For all current usage data, use
+        > [`/api/v2/user/usage`](#/Usage%20Metrics/getUserUsageV2).**
+        > The v2 endpoint provides split chat/agent metrics with per-model
+        > breakdowns and is the only source of post-6.2 activity data.
+
         Get user-level usage metrics over a time range.
       operationId: getUserUsage
       parameters:
