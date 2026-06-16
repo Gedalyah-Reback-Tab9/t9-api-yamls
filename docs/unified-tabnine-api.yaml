@@ -384,7 +384,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/team/v1/{teamId}:
+  /api/team/v1/{teamid}:
     get:
       tags: [Teams]
       summary: Get a team
@@ -393,7 +393,7 @@ paths:
         Requires Admin, Manager, or TeamLead (own team only).
       operationId: getTeam
       parameters:
-        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/Teamid"
       responses:
         "200":
           description: Team details
@@ -419,7 +419,7 @@ paths:
         Cannot rename synced teams.
       operationId: renameTeam
       parameters:
-        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/Teamid"
       requestBody:
         required: true
         content:
@@ -1379,6 +1379,15 @@ components:
   parameters:
     TeamId:
       name: teamId
+      in: path
+      required: true
+      description: Team UUID
+      schema:
+        type: string
+        format: uuid
+
+    Teamid:
+      name: teamid
       in: path
       required: true
       description: Team UUID
