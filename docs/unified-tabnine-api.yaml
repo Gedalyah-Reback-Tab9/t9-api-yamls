@@ -111,7 +111,7 @@ paths:
       parameters:
         - name: limit
           in: query
-          required: false
+          required: true
           schema:
             type: integer
             minimum: 0
@@ -119,7 +119,7 @@ paths:
           description: Maximum number of items to return
         - name: offset
           in: query
-          required: false
+          required: true
           schema:
             type: integer
             minimum: 0
@@ -620,40 +620,24 @@ paths:
   # ========================================
   # AGENT USAGE
   # ========================================
-  # Note: The source spec for these endpoints specifies https://api.tabnine.com as the server.
-  # These endpoints are served from that host; the global server list is unchanged.
+  # Note: The source spec for these endpoints specifies https://console.tabnine.com as the server.
+  # These endpoints require organizationId and use from/to for the reporting window.
   /api/v1/organization/agent-usage:
     get:
-      tags: [Agent Usage]
+      tags:
+        - Agent Usage
       summary: Get organization-level agent usage
       description: >
-        Returns aggregated agent usage for an organization, including
-        per-model token and cost data and IDE vs CLI breakdown.
-        Requires that the Agent feature is enabled in the account license.
+        Returns aggregated agent usage for an organization, including model
+        breakdown and agent type breakdown.
       operationId: getOrganizationAgentUsage
+      security:
+        - bearerAuth: []
       parameters:
-        - name: startDate
-          in: query
-          description: Start of the reporting window (inclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: endDate
-          in: query
-          description: End of the reporting window (exclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: granularity
-          in: query
-          description: >
-            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
-            Must match the existing usage APIs.
-          required: false
-          schema:
-            type: string
+        - $ref: "#/components/parameters/organizationId"
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
       responses:
         "200":
           description: Organization agent usage
@@ -662,56 +646,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/OrganizationAgentUsageResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: Validation error
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized or invalid organization
         "403":
-          description: Agent feature not available in license
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FeatureNotAvailableError"
+          description: Agent feature not available or insufficient permissions
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error
 
   /api/v1/team/agent-usage:
     get:
-      tags: [Agent Usage]
+      tags:
+        - Agent Usage
       summary: Get team-level agent usage
       description: >
-        Returns aggregated agent usage for a team, including
-        per-model token and cost data and IDE vs CLI breakdown.
-        Requires that the Agent feature is enabled in the account license.
+        Returns aggregated agent usage for a team, including model breakdown
+        and agent type breakdown.
       operationId: getTeamAgentUsage
+      security:
+        - bearerAuth: []
       parameters:
-        - name: teamId
-          in: query
-          description: Team identifier.
-          required: true
-          schema:
-            type: string
-        - name: startDate
-          in: query
-          description: Start of the reporting window (inclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: endDate
-          in: query
-          description: End of the reporting window (exclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: granularity
-          in: query
-          description: >
-            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
-            Must match the existing usage APIs.
-          required: false
-          schema:
-            type: string
+        - $ref: "#/components/parameters/organizationId"
+        - $ref: "#/components/parameters/teamId"
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
       responses:
         "200":
           description: Team agent usage
@@ -720,56 +679,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/TeamAgentUsageResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: Validation error
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized or invalid organization
         "403":
-          description: Agent feature not available in license
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FeatureNotAvailableError"
+          description: Agent feature not available or insufficient permissions
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error
 
   /api/v1/user/agent-usage:
     get:
-      tags: [Agent Usage]
+      tags:
+        - Agent Usage
       summary: Get user-level agent usage
       description: >
-        Returns aggregated agent usage for a user, including
-        per-model token and cost data and IDE vs CLI breakdown.
-        Requires that the Agent feature is enabled in the account license.
+        Returns aggregated agent usage for a user, including model breakdown
+        and agent type breakdown.
       operationId: getUserAgentUsage
+      security:
+        - bearerAuth: []
       parameters:
-        - name: userId
-          in: query
-          description: User identifier.
-          required: true
-          schema:
-            type: string
-        - name: startDate
-          in: query
-          description: Start of the reporting window (inclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: endDate
-          in: query
-          description: End of the reporting window (exclusive), ISO 8601 datetime.
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: granularity
-          in: query
-          description: >
-            Aggregation granularity for usage data (e.g., `all`, `day`, `week`, `month`).
-            Must match the existing usage APIs.
-          required: false
-          schema:
-            type: string
+        - $ref: "#/components/parameters/organizationId"
+        - $ref: "#/components/parameters/userId"
+        - $ref: "#/components/parameters/from"
+        - $ref: "#/components/parameters/to"
+        - $ref: "#/components/parameters/granularity"
       responses:
         "200":
           description: User agent usage
@@ -778,17 +712,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserAgentUsageResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: Validation error
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized or invalid organization
         "403":
-          description: Agent feature not available in license
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FeatureNotAvailableError"
+          description: Agent feature not available or insufficient permissions
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error
 
   # ========================================
   # V2 USAGE METRICS (added in 6.2)
@@ -1415,6 +1345,7 @@ paths:
           required: true
           schema:
             type: string
+            enum: [Admin, Manager, TeamLead, Member]
           example: Admin
       responses:
         "200":
@@ -1469,6 +1400,30 @@ components:
       in: path
       required: true
       description: The full repository link/URL
+      schema:
+        type: string
+
+    organizationId:
+      name: organizationId
+      in: query
+      required: true
+      description: Organization identifier.
+      schema:
+        type: string
+
+    teamId:
+      name: teamId
+      in: query
+      required: true
+      description: Team identifier.
+      schema:
+        type: string
+
+    userId:
+      name: userId
+      in: query
+      required: true
+      description: User identifier.
       schema:
         type: string
 
@@ -2435,35 +2390,14 @@ components:
     # ========================================
     OrganizationAgentUsageResponse:
       type: object
-      properties:
-        organizationId:
-          type: string
-          example: org_abc123
-        from:
-          type: string
-          format: date-time
-          example: '2026-03-01T00:00:00Z'
-        to:
-          type: string
-          format: date-time
-          example: '2026-03-31T00:00:00Z'
-        usage:
-          $ref: '#/components/schemas/AgentUsageEnvelope'
       required:
         - organizationId
         - from
         - to
         - usage
-
-    TeamAgentUsageResponse:
-      type: object
       properties:
         organizationId:
           type: string
-          example: org_abc123
-        teamId:
-          type: string
-          example: team_123
         from:
           type: string
           format: date-time
@@ -2471,23 +2405,21 @@ components:
           type: string
           format: date-time
         usage:
-          $ref: '#/components/schemas/AgentUsageEnvelope'
+          $ref: "#/components/schemas/AgentUsageEnvelope"
+
+    TeamAgentUsageResponse:
+      type: object
       required:
         - organizationId
         - teamId
         - from
         - to
         - usage
-
-    UserAgentUsageResponse:
-      type: object
       properties:
         organizationId:
           type: string
-          example: org_abc123
-        userId:
+        teamId:
           type: string
-          example: user_123
         from:
           type: string
           format: date-time
@@ -2495,57 +2427,50 @@ components:
           type: string
           format: date-time
         usage:
-          $ref: '#/components/schemas/AgentUsageEnvelope'
+          $ref: "#/components/schemas/AgentUsageEnvelope"
+
+    UserAgentUsageResponse:
+      type: object
       required:
         - organizationId
         - userId
         - from
         - to
         - usage
-
-    AgentUsageEnvelope:
-      type: object
       properties:
-        granularity:
+        organizationId:
           type: string
-          example: all
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentUsageDataPoint'
-      required:
-        - granularity
-        - data
-
-    AgentUsageDataPoint:
-      type: object
-      properties:
+        userId:
+          type: string
         from:
           type: string
           format: date-time
         to:
           type: string
           format: date-time
-        activeUsers:
-          type: integer
-          example: 60
-        totalTokensConsumed:
-          type: integer
-          example: 2500000
-        totalInputTokens:
-          type: integer
-          example: 2000000
-        totalOutputTokens:
-          type: integer
-          example: 500000
-        totalCost:
-          type: number
-          format: float
-          example: 45.5
-        modelBreakdown:
+        usage:
+          $ref: "#/components/schemas/AgentUsageEnvelope"
+
+    AgentUsageEnvelope:
+      type: object
+      required:
+        - granularity
+        - data
+      properties:
+        granularity:
+          type: string
+          enum:
+            - all
+            - daily
+            - weekly
+            - monthly
+        data:
           type: array
           items:
-            $ref: '#/components/schemas/ModelBreakdownEntry'
+            $ref: "#/components/schemas/AgentUsageDataPoint"
+
+    AgentUsageDataPoint:
+      type: object
       required:
         - from
         - to
@@ -2555,32 +2480,126 @@ components:
         - totalOutputTokens
         - totalCost
         - modelBreakdown
-
-    ModelBreakdownEntry:
-      type: object
+        - agentTypeBreakdown
       properties:
-        model:
+        from:
           type: string
-          example: claude-sonnet-4-20250514
-        tokensConsumed:
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        activeUsers:
           type: integer
-          example: 1800000
-        inputTokens:
+          minimum: 0
+        totalTokensConsumed:
           type: integer
-          example: 1500000
-        outputTokens:
+          minimum: 0
+        totalInputTokens:
           type: integer
-          example: 300000
-        cost:
+          minimum: 0
+        totalOutputTokens:
+          type: integer
+          minimum: 0
+        totalCost:
           type: number
           format: float
-          example: 35.0
+          minimum: 0
+        modelBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentModelBreakdown"
+        agentTypeBreakdown:
+          type: array
+          description: >
+            Breakdown of agent usage by agent type, such as IDE or CLI.
+          items:
+            $ref: "#/components/schemas/AgentTypeBreakdown"
+
+    AgentModelBreakdown:
+      type: object
       required:
         - model
         - tokensConsumed
         - inputTokens
         - outputTokens
         - cost
+      properties:
+        model:
+          type: string
+        tokensConsumed:
+          type: integer
+          minimum: 0
+        inputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
+        cost:
+          type: number
+          format: float
+          minimum: 0
+
+    AgentTypeBreakdown:
+      type: object
+      required:
+        - agentType
+        - activeUsers
+        - interactions
+        - linesAdded
+        - linesAddedAccepted
+        - linesRemoved
+        - linesRemovedAccepted
+        - tokensConsumed
+        - inputTokens
+        - outputTokens
+        - cost
+        - userInitiatedMessages
+        - modelBreakdown
+      properties:
+        agentType:
+          type: string
+          description: Agent type, such as IDE or CLI.
+          example: cli
+        activeUsers:
+          type: integer
+          minimum: 0
+        interactions:
+          type: integer
+          minimum: 0
+        linesAdded:
+          type: integer
+          minimum: 0
+        linesAddedAccepted:
+          type: integer
+          minimum: 0
+        linesRemoved:
+          type: integer
+          minimum: 0
+        linesRemovedAccepted:
+          type: integer
+          minimum: 0
+        tokensConsumed:
+          type: integer
+          minimum: 0
+        inputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
+        cost:
+          type: number
+          format: float
+          minimum: 0
+        userInitiatedMessages:
+          type: integer
+          minimum: 0
+        modelBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentModelBreakdown"
+
     FeatureNotAvailableError:
       type: object
       properties:
