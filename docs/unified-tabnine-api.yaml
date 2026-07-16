@@ -1463,7 +1463,7 @@ components:
       description: Aggregation granularity for usage data
       schema:
         type: string
-        enum: [all, day, week, month, daily, weekly, monthly]
+        enum: [all, daily, weekly, monthly]
       example: all
 
   responses:
@@ -2285,7 +2285,7 @@ components:
       properties:
         granularity:
           type: string
-          enum: [all, day, week, month, daily, weekly, monthly]
+          enum: [all, daily, weekly, monthly]
         data:
           type: array
           items:
