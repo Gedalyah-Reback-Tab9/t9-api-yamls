@@ -105,7 +105,8 @@ paths:
       tags: [Organization, Users]
       summary: Get organization users
       description: |
-        Get users in the organization. Can filter by team membership and active status.
+        Get users in the organization. `limit` and `offset` are required.
+        Requests that omit either parameter return a validation error.
         Use `teamMember=false` to get users not assigned to any team.
       operationId: getOrganizationUsers
       parameters:
@@ -114,7 +115,7 @@ paths:
           required: true
           schema:
             type: integer
-            minimum: 0
+            minimum: 1
             default: 200
           description: Maximum number of items to return
         - name: offset
@@ -136,7 +137,7 @@ paths:
           required: false
           schema:
             type: boolean
-          description: Filter by active status. true=registered, false=deactivated.
+          description: Optional active-status filter.
       responses:
         "200":
           description: Paginated list of users
@@ -448,7 +449,7 @@ paths:
     get:
       tags: [Teams, Users]
       summary: Get team users
-      description: Get paginated list of users in a team
+      description: Get paginated list of users in a team. `limit` and `offset` are required.
       operationId: getTeamUsers
       parameters:
         - $ref: "#/components/parameters/TeamId"
@@ -463,14 +464,14 @@ paths:
           required: true
           schema:
             type: integer
-            minimum: 0
+            minimum: 1
       responses:
         "200":
           description: Team users
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaginatedUsersResponse"
+                $ref: "#/components/schemas/PaginatedTeamUsersResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -729,12 +730,16 @@ paths:
       summary: Get organization usage (v2)
       description: |
         Returns aggregated usage metrics for an organization with split
-        chat/agent metrics and per-model breakdown. Replaces v1 usage endpoint.
+        chat/agent metrics. Replaces v1 usage endpoint.
 
         **New in 6.2:**
         - Chat and agent metrics are split (separate `messages`, `linesAdded`)
-        - Per-model breakdown with token counts (`chat.models`, `agent.models`)
-        - `ides` and `languages` fields on per-user queries
+        - Per-model breakdown with token counts (`chat.models`, `agent.models`) when available
+
+        Model breakdowns and optional usage dimensions are returned only when
+        available for the requested aggregation. For example, `models` may be
+        present with `granularity=all` and omitted with `granularity=daily`,
+        `granularity=weekly`, or `granularity=monthly`.
       operationId: getOrganizationUsageV2
       parameters:
         - name: organizationId
@@ -767,8 +772,13 @@ paths:
       tags: [Usage Metrics, Teams]
       summary: Get team usage (v2)
       description: |
-        Returns team-level usage metrics with split chat/agent metrics
-        and per-model breakdown. Replaces v1 team usage endpoint.
+        Returns team-level usage metrics with split chat/agent metrics.
+        Replaces v1 team usage endpoint.
+
+        Model breakdowns and optional usage dimensions are returned only when
+        available for the requested aggregation. For example, `models` may be
+        present with `granularity=all` and omitted with `granularity=daily`,
+        `granularity=weekly`, or `granularity=monthly`.
       operationId: getTeamUsageV2
       parameters:
         - name: organizationId
@@ -807,9 +817,14 @@ paths:
       tags: [Usage Metrics, Users]
       summary: Get user usage (v2)
       description: |
-        Returns per-user usage metrics with split chat/agent metrics,
-        per-model breakdown, and IDE/language information.
+        Returns per-user usage metrics with split chat/agent metrics.
         Replaces v1 user usage endpoint.
+
+        Model breakdowns and optional usage dimensions are returned only when
+        available for the requested aggregation. For example, `models` may be
+        present with `granularity=all` and omitted with `granularity=daily`,
+        `granularity=weekly`, or `granularity=monthly`. IDE and language fields
+        may be included on per-user responses when available.
       operationId: getUserUsageV2
       parameters:
         - name: organizationId
@@ -1598,7 +1613,6 @@ components:
       required:
         - id
         - name
-        - organizationId
       properties:
         id:
           type: string
@@ -1608,10 +1622,11 @@ components:
         organizationId:
           type: string
           format: uuid
+          description: Organization ID, when returned by the endpoint.
         syncedGroupId:
           type: string
           nullable: true
-          description: Optional ID of synced external group
+          description: ID of a synced external group, when returned by the endpoint.
         usersCount:
           type: integer
           minimum: 0
@@ -1670,10 +1685,10 @@ components:
       type: object
       required:
         - id
+        - username
         - email
         - role
         - verified
-        - active
       properties:
         id:
           type: string
@@ -1687,15 +1702,9 @@ components:
           $ref: "#/components/schemas/Role"
         verified:
           type: boolean
-        active:
-          type: boolean
         team:
           $ref: "#/components/schemas/Team"
           nullable: true
-        allowedTeams:
-          type: array
-          items:
-            $ref: "#/components/schemas/Team"
         deactivatedAt:
           type: string
           format: date-time
@@ -1816,6 +1825,28 @@ components:
             team_name:
               type: string
 
+    TeamUser:
+      type: object
+      required:
+        - id
+        - username
+        - email
+        - role
+        - verified
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        verified:
+          type: boolean
+
     PaginatedUsersResponse:
       type: object
       properties:
@@ -1823,6 +1854,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/User"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    PaginatedTeamUsersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamUser"
         meta:
           $ref: "#/components/schemas/PaginationMeta"
 
@@ -2319,6 +2360,10 @@ components:
           $ref: "#/components/schemas/ChatUsage"
         agent:
           $ref: "#/components/schemas/AgentUsage"
+        agentChat:
+          $ref: "#/components/schemas/LegacyAgentInteractionUsage"
+        agentAgent:
+          $ref: "#/components/schemas/LegacyAgentInteractionUsage"
 
     InstructUsage:
       type: object
@@ -2391,6 +2436,19 @@ components:
           type: integer
           minimum: 0
         linesRemovedAccepted:
+          type: integer
+          minimum: 0
+
+    LegacyAgentInteractionUsage:
+      type: object
+      required:
+        - activeUsers
+        - interactions
+      properties:
+        activeUsers:
+          type: integer
+          minimum: 0
+        interactions:
           type: integer
           minimum: 0
 
@@ -2713,11 +2771,11 @@ components:
         ides:
           type: string
           nullable: true
-          description: Comma-separated list of IDEs used (per-user queries only)
+          description: IDE usage value when available. Omitted when not available.
         languages:
           type: string
           nullable: true
-          description: Comma-separated list of programming languages (per-user queries only)
+          description: Programming language usage value when available. Omitted when not available.
 
     V2CodeCompletionsUsage:
       type: object
@@ -2754,7 +2812,7 @@ components:
           description: Lines of code added via chat
         models:
           type: array
-          description: Per-model breakdown of chat usage
+          description: Per-model chat usage breakdown. Returned only when model-level aggregation is available, such as with `granularity=all`; may be omitted for daily, weekly, or monthly granularities.
           items:
             $ref: "#/components/schemas/V2ModelUsage"
 
@@ -2783,7 +2841,7 @@ components:
           minimum: 0
         models:
           type: array
-          description: Per-model breakdown of agent usage
+          description: Per-model agent usage breakdown. Returned only when model-level aggregation is available, such as with `granularity=all`; may be omitted for daily, weekly, or monthly granularities.
           items:
             $ref: "#/components/schemas/V2ModelUsage"
 
@@ -2793,7 +2851,7 @@ components:
         model:
           type: string
           format: uuid
-          description: Model UUID (map to display name on client side)
+          description: Internal model identifier.
         messages:
           type: integer
           minimum: 0
