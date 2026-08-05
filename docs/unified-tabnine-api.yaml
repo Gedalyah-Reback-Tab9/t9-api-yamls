@@ -1635,6 +1635,14 @@ components:
           minimum: 0
         isDefaultTeam:
           type: boolean
+        seatCap:
+          type: integer
+          nullable: true
+          description: Per-team seat limit, present only when a seat cap is configured for this team. (since 6.3.0)
+        pendingInvitationsCount:
+          type: integer
+          minimum: 0
+          description: Count of active outstanding invitations to this team. (since 6.3.0)
 
     CreateTeamRequest:
       type: object
