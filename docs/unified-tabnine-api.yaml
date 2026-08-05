@@ -1586,6 +1586,9 @@ components:
           type: boolean
         usernamePasswordEnabled:
           type: boolean
+        oauthEnabled:
+          type: boolean
+          description: OAuth SSO authentication status
         domains:
           type: array
           items:
