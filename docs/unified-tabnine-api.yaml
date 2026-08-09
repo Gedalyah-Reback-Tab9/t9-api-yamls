@@ -1753,12 +1753,21 @@ components:
               format: email
             role:
               $ref: "#/components/schemas/Role"
-            active:
-              type: boolean
+            organization_id:
+              type: string
+              format: uuid
             allowedTeams:
               type: array
+              description: List of team IDs the user belongs to. Use GET /api/user/v1/{userId}/allowed-teams for full team details.
               items:
-                $ref: "#/components/schemas/Team"
+                type: string
+                format: uuid
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
         teams:
           type: object
           properties:
