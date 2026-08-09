@@ -1354,7 +1354,12 @@ paths:
     get:
       tags: [Organization]
       summary: Get account permissions
-      description: Get list of users with a specific role (e.g., account admins)
+      description: |
+        Get users who hold an instance-level Admin permission record.
+        Only `Admin` returns results — this queries server-wide permission records,
+        not org-level role assignments.
+
+        Requires Admin role. PAT tokens must have the `license:read` scope.
       operationId: getInstancePermissions
       parameters:
         - name: role
@@ -1362,7 +1367,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [Admin, Manager, TeamLead, Member]
+            enum: [Admin]
           example: Admin
       responses:
         "200":
