@@ -1786,6 +1786,10 @@ components:
         - email
         - role
         - verified
+        - deactivatedAt
+        - updatedAt
+        - userType
+        - name
       properties:
         id:
           type: string
@@ -1799,15 +1803,30 @@ components:
           $ref: "#/components/schemas/Role"
         verified:
           type: boolean
-        active:
-          type: boolean
-        team:
-          $ref: "#/components/schemas/Team"
+        deactivatedAt:
+          type: string
+          format: date-time
           nullable: true
+          description: "Null when the user is active; timestamp when deactivated."
+        updatedAt:
+          type: string
+          format: date-time
+        userType:
+          type: string
+          enum: [human, service_account]
+        name:
+          type: string
+          description: "Display name. Equals email for human users; equals username for service accounts."
+        tier:
+          type: string
+          nullable: true
+          description: "License tier for service accounts (e.g. \"enterprise\"). Null for human users."
         allowedTeams:
           type: array
+          description: "List of team IDs the user belongs to. Use GET /api/user/v1/{userId}/allowed-teams for full team details."
           items:
-            $ref: "#/components/schemas/Team"
+            type: string
+            format: uuid
 
     UpdateUserRequest:
       type: object
